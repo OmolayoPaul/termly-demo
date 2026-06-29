@@ -7,7 +7,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const nav = [
+const nav: { to: string; label: string; exact?: boolean }[] = [
   { to: "/admin", label: "Dashboard", exact: true },
   { to: "/admin/students", label: "Students" },
   { to: "/admin/fees", label: "Fees" },
@@ -16,7 +16,7 @@ const nav = [
   { to: "/admin/bills", label: "Bills" },
   { to: "/admin/transactions", label: "Transactions" },
   { to: "/admin/reminders", label: "Reminders" },
-] as const;
+];
 
 function AdminLayout() {
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ function AdminLayout() {
             return (
               <Link
                 key={n.to}
-                to={n.to}
+                to={n.to as string}
                 className={`block rounded-md px-3 py-2 transition ${
                   active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
