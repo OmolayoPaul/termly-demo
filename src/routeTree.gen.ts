@@ -9,38 +9,264 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeacherRouteImport } from './routes/teacher'
+import { Route as ParentRouteImport } from './routes/parent'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TeacherIndexRouteImport } from './routes/teacher.index'
+import { Route as ParentIndexRouteImport } from './routes/parent.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TeacherSalaryRouteImport } from './routes/teacher.salary'
+import { Route as ParentInstallmentsRouteImport } from './routes/parent.installments'
+import { Route as ParentHistoryRouteImport } from './routes/parent.history'
+import { Route as ParentFeesRouteImport } from './routes/parent.fees'
+import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
+import { Route as AdminStudentsRouteImport } from './routes/admin.students'
+import { Route as AdminRemindersRouteImport } from './routes/admin.reminders'
+import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
+import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
+import { Route as AdminFeesRouteImport } from './routes/admin.fees'
+import { Route as AdminBillsRouteImport } from './routes/admin.bills'
 
+const TeacherRoute = TeacherRouteImport.update({
+  id: '/teacher',
+  path: '/teacher',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParentRoute = ParentRouteImport.update({
+  id: '/parent',
+  path: '/parent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeacherIndexRoute = TeacherIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const ParentIndexRoute = ParentIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ParentRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const TeacherSalaryRoute = TeacherSalaryRouteImport.update({
+  id: '/salary',
+  path: '/salary',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const ParentInstallmentsRoute = ParentInstallmentsRouteImport.update({
+  id: '/installments',
+  path: '/installments',
+  getParentRoute: () => ParentRoute,
+} as any)
+const ParentHistoryRoute = ParentHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => ParentRoute,
+} as any)
+const ParentFeesRoute = ParentFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
+  getParentRoute: () => ParentRoute,
+} as any)
+const AdminTransactionsRoute = AdminTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRemindersRoute = AdminRemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPayrollRoute = AdminPayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInstallmentsRoute = AdminInstallmentsRouteImport.update({
+  id: '/installments',
+  path: '/installments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeesRoute = AdminFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBillsRoute = AdminBillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/parent': typeof ParentRouteWithChildren
+  '/teacher': typeof TeacherRouteWithChildren
+  '/admin/bills': typeof AdminBillsRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/payroll': typeof AdminPayrollRoute
+  '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/fees': typeof ParentFeesRoute
+  '/parent/history': typeof ParentHistoryRoute
+  '/parent/installments': typeof ParentInstallmentsRoute
+  '/teacher/salary': typeof TeacherSalaryRoute
+  '/admin/': typeof AdminIndexRoute
+  '/parent/': typeof ParentIndexRoute
+  '/teacher/': typeof TeacherIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/bills': typeof AdminBillsRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/payroll': typeof AdminPayrollRoute
+  '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/fees': typeof ParentFeesRoute
+  '/parent/history': typeof ParentHistoryRoute
+  '/parent/installments': typeof ParentInstallmentsRoute
+  '/teacher/salary': typeof TeacherSalaryRoute
+  '/admin': typeof AdminIndexRoute
+  '/parent': typeof ParentIndexRoute
+  '/teacher': typeof TeacherIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/parent': typeof ParentRouteWithChildren
+  '/teacher': typeof TeacherRouteWithChildren
+  '/admin/bills': typeof AdminBillsRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
+  '/admin/payroll': typeof AdminPayrollRoute
+  '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
+  '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/fees': typeof ParentFeesRoute
+  '/parent/history': typeof ParentHistoryRoute
+  '/parent/installments': typeof ParentInstallmentsRoute
+  '/teacher/salary': typeof TeacherSalaryRoute
+  '/admin/': typeof AdminIndexRoute
+  '/parent/': typeof ParentIndexRoute
+  '/teacher/': typeof TeacherIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/parent'
+    | '/teacher'
+    | '/admin/bills'
+    | '/admin/fees'
+    | '/admin/installments'
+    | '/admin/payroll'
+    | '/admin/reminders'
+    | '/admin/students'
+    | '/admin/transactions'
+    | '/parent/fees'
+    | '/parent/history'
+    | '/parent/installments'
+    | '/teacher/salary'
+    | '/admin/'
+    | '/parent/'
+    | '/teacher/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/bills'
+    | '/admin/fees'
+    | '/admin/installments'
+    | '/admin/payroll'
+    | '/admin/reminders'
+    | '/admin/students'
+    | '/admin/transactions'
+    | '/parent/fees'
+    | '/parent/history'
+    | '/parent/installments'
+    | '/teacher/salary'
+    | '/admin'
+    | '/parent'
+    | '/teacher'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/parent'
+    | '/teacher'
+    | '/admin/bills'
+    | '/admin/fees'
+    | '/admin/installments'
+    | '/admin/payroll'
+    | '/admin/reminders'
+    | '/admin/students'
+    | '/admin/transactions'
+    | '/parent/fees'
+    | '/parent/history'
+    | '/parent/installments'
+    | '/teacher/salary'
+    | '/admin/'
+    | '/parent/'
+    | '/teacher/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  ParentRoute: typeof ParentRouteWithChildren
+  TeacherRoute: typeof TeacherRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/teacher': {
+      id: '/teacher'
+      path: '/teacher'
+      fullPath: '/teacher'
+      preLoaderRoute: typeof TeacherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parent': {
+      id: '/parent'
+      path: '/parent'
+      fullPath: '/parent'
+      preLoaderRoute: typeof ParentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +274,167 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teacher/': {
+      id: '/teacher/'
+      path: '/'
+      fullPath: '/teacher/'
+      preLoaderRoute: typeof TeacherIndexRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/parent/': {
+      id: '/parent/'
+      path: '/'
+      fullPath: '/parent/'
+      preLoaderRoute: typeof ParentIndexRouteImport
+      parentRoute: typeof ParentRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/teacher/salary': {
+      id: '/teacher/salary'
+      path: '/salary'
+      fullPath: '/teacher/salary'
+      preLoaderRoute: typeof TeacherSalaryRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/parent/installments': {
+      id: '/parent/installments'
+      path: '/installments'
+      fullPath: '/parent/installments'
+      preLoaderRoute: typeof ParentInstallmentsRouteImport
+      parentRoute: typeof ParentRoute
+    }
+    '/parent/history': {
+      id: '/parent/history'
+      path: '/history'
+      fullPath: '/parent/history'
+      preLoaderRoute: typeof ParentHistoryRouteImport
+      parentRoute: typeof ParentRoute
+    }
+    '/parent/fees': {
+      id: '/parent/fees'
+      path: '/fees'
+      fullPath: '/parent/fees'
+      preLoaderRoute: typeof ParentFeesRouteImport
+      parentRoute: typeof ParentRoute
+    }
+    '/admin/transactions': {
+      id: '/admin/transactions'
+      path: '/transactions'
+      fullPath: '/admin/transactions'
+      preLoaderRoute: typeof AdminTransactionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reminders': {
+      id: '/admin/reminders'
+      path: '/reminders'
+      fullPath: '/admin/reminders'
+      preLoaderRoute: typeof AdminRemindersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payroll': {
+      id: '/admin/payroll'
+      path: '/payroll'
+      fullPath: '/admin/payroll'
+      preLoaderRoute: typeof AdminPayrollRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/installments': {
+      id: '/admin/installments'
+      path: '/installments'
+      fullPath: '/admin/installments'
+      preLoaderRoute: typeof AdminInstallmentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/fees': {
+      id: '/admin/fees'
+      path: '/fees'
+      fullPath: '/admin/fees'
+      preLoaderRoute: typeof AdminFeesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bills': {
+      id: '/admin/bills'
+      path: '/bills'
+      fullPath: '/admin/bills'
+      preLoaderRoute: typeof AdminBillsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminBillsRoute: typeof AdminBillsRoute
+  AdminFeesRoute: typeof AdminFeesRoute
+  AdminInstallmentsRoute: typeof AdminInstallmentsRoute
+  AdminPayrollRoute: typeof AdminPayrollRoute
+  AdminRemindersRoute: typeof AdminRemindersRoute
+  AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminTransactionsRoute: typeof AdminTransactionsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminBillsRoute: AdminBillsRoute,
+  AdminFeesRoute: AdminFeesRoute,
+  AdminInstallmentsRoute: AdminInstallmentsRoute,
+  AdminPayrollRoute: AdminPayrollRoute,
+  AdminRemindersRoute: AdminRemindersRoute,
+  AdminStudentsRoute: AdminStudentsRoute,
+  AdminTransactionsRoute: AdminTransactionsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface ParentRouteChildren {
+  ParentFeesRoute: typeof ParentFeesRoute
+  ParentHistoryRoute: typeof ParentHistoryRoute
+  ParentInstallmentsRoute: typeof ParentInstallmentsRoute
+  ParentIndexRoute: typeof ParentIndexRoute
+}
+
+const ParentRouteChildren: ParentRouteChildren = {
+  ParentFeesRoute: ParentFeesRoute,
+  ParentHistoryRoute: ParentHistoryRoute,
+  ParentInstallmentsRoute: ParentInstallmentsRoute,
+  ParentIndexRoute: ParentIndexRoute,
+}
+
+const ParentRouteWithChildren =
+  ParentRoute._addFileChildren(ParentRouteChildren)
+
+interface TeacherRouteChildren {
+  TeacherSalaryRoute: typeof TeacherSalaryRoute
+  TeacherIndexRoute: typeof TeacherIndexRoute
+}
+
+const TeacherRouteChildren: TeacherRouteChildren = {
+  TeacherSalaryRoute: TeacherSalaryRoute,
+  TeacherIndexRoute: TeacherIndexRoute,
+}
+
+const TeacherRouteWithChildren =
+  TeacherRoute._addFileChildren(TeacherRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  ParentRoute: ParentRouteWithChildren,
+  TeacherRoute: TeacherRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
