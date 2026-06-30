@@ -1,0 +1,1 @@
+- [Production deployment architecture](prod-deploy-arch.md) — @lovable.dev/vite-tanstack-config defaults to Cloudflare Workers; must set node-server preset + dual-process gateway for Replit
