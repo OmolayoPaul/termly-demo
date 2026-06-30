@@ -28,20 +28,22 @@ function authHeaders(token) {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', accountId: PARENT_ACCOUNT_ID };
 }
 
-export async function createCheckoutOrder(amount, customerEmail, customerName, callbackUrl, description) {
+export async function createCheckoutOrder(amount, customerEmail, customerName, callbackUrl, webhookUrl, description) {
   const token = await getAccessToken();
+  const body = {
+    orderReference: `TERMLY-${Date.now()}`,
+    customerId: customerEmail,
+    customerName,
+    amount,
+    currency: 'NGN',
+    callbackUrl,
+    description: description || 'School fee payment - Termly',
+  };
+  if (webhookUrl) body.webhookUrl = webhookUrl;
   const response = await fetch(`${BASE_URL}/checkout/orders`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({
-      orderReference: `TERMLY-${Date.now()}`,
-      customerId: customerEmail,
-      customerName,
-      amount,
-      currency: 'NGN',
-      callbackUrl,
-      description: description || 'School fee payment - Termly',
-    }),
+    body: JSON.stringify(body),
   });
   const data = await response.json();
   if (data.code !== '00') throw new Error(data.description || 'Checkout failed');

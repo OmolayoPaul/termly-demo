@@ -116,3 +116,23 @@ export async function buyDataBundle(network: string, phone: string, planId: stri
     reference: string;
   }>;
 }
+
+export interface WebhookEvent {
+  found: boolean;
+  orderReference?: string;
+  transactionRef?: string;
+  amount?: number;
+  status?: string;
+  type?: string;
+  receivedAt?: number;
+}
+
+export async function checkWebhookEvent(orderReference: string): Promise<WebhookEvent> {
+  try {
+    const res = await fetch(`/api/webhooks/event/${encodeURIComponent(orderReference)}`);
+    if (!res.ok) return { found: false };
+    return res.json() as Promise<WebhookEvent>;
+  } catch {
+    return { found: false };
+  }
+}

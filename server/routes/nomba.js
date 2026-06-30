@@ -18,8 +18,10 @@ function handleError(res, err) {
 router.post('/checkout', async (req, res) => {
   try {
     const { amount, email, name, description } = req.body;
-    const callbackUrl = (req.headers.origin || `http://localhost:${process.env.PORT || 3001}`) + '/payment/callback';
-    const result = await nomba.createCheckoutOrder(amount, email, name, callbackUrl, description);
+    const origin = req.headers.origin || `https://${req.headers.host}` || `http://localhost:${process.env.PORT || 5000}`;
+    const callbackUrl = origin + '/payment/callback';
+    const webhookUrl = origin + '/api/webhooks/nomba';
+    const result = await nomba.createCheckoutOrder(amount, email, name, callbackUrl, webhookUrl, description);
     res.json(result);
   } catch (err) { handleError(res, err); }
 });

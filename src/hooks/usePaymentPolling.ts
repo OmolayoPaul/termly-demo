@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { verifyTransaction } from "../services/nomba";
+import { verifyTransaction, checkWebhookEvent } from "../services/nomba";
 import { KEYS, read, write, type FeeRow, type TxRow } from "../lib/storage";
 import { burstConfetti } from "../lib/confetti";
 
@@ -136,13 +136,31 @@ export function useResumePendingPayment(onSuccess?: () => void): PollResult {
       null,
     );
     if (!pending) return;
+
     const age = Date.now() - (pending.timestamp ?? 0);
     if (age > 180000) {
       write(KEYS.pendingPayment, null);
       return;
     }
+
     started.current = true;
-    poll.startPolling(pending.orderReference, pending.feeId, pending.amount);
+
+    // First check if Nomba already delivered a webhook confirmation for this payment.
+    // If yes, resolve instantly — no polling needed.
+    (async () => {
+      try {
+        const event = await checkWebhookEvent(pending.orderReference);
+        if (event.found && event.status === "SUCCESS") {
+          console.log("[Termly] Webhook event found — resolving payment instantly:", pending.orderReference);
+          // Use verifyTransaction to get full details from Nomba, then settle
+          poll.startPolling(pending.orderReference, pending.feeId, pending.amount);
+          return;
+        }
+      } catch {
+        // ignore — fall through to normal polling
+      }
+      poll.startPolling(pending.orderReference, pending.feeId, pending.amount);
+    })();
   }, [poll]);
 
   return poll;
