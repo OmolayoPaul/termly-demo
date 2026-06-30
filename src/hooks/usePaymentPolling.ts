@@ -9,6 +9,8 @@ export interface PollResult {
   state: PollState;
   amount: number;
   transactionRef: string;
+  studentName: string;
+  feeType: string;
   secondsLeft: number;
   cancel: () => void;
   startPolling: (orderReference: string, feeId: string, feeAmount: number) => void;
@@ -21,6 +23,8 @@ export function usePaymentPolling(onSuccess?: () => void): PollResult {
   const [state, setState] = useState<PollState>("idle");
   const [amount, setAmount] = useState(0);
   const [transactionRef, setTransactionRef] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [feeType, setFeeType] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const cancelledRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -68,26 +72,33 @@ export function usePaymentPolling(onSuccess?: () => void): PollResult {
               String(r.status).toUpperCase() === "PAID";
             if (ok) {
               cleanup();
-              setAmount(Number(r.amount) || feeAmount);
-              setTransactionRef(r.transactionRef || orderReference);
+
+              const fees = read<FeeRow[]>(KEYS.fees, []);
+              const fee = fees.find((f) => f.id === feeId);
+              const resolvedAmount = Number(r.amount) || feeAmount;
+              const resolvedRef = r.transactionRef || orderReference;
+
+              setAmount(resolvedAmount);
+              setTransactionRef(resolvedRef);
+              setStudentName(fee?.studentName ?? "Student");
+              setFeeType(fee?.term ?? "School Fee");
               setState("success");
               burstConfetti();
 
-              const fees = read<FeeRow[]>(KEYS.fees, []).map((f) =>
-                f.id === feeId ? { ...f, paid: f.amount, status: "Paid" as const } : f,
+              write(
+                KEYS.fees,
+                fees.map((f) => (f.id === feeId ? { ...f, paid: f.amount, status: "Paid" as const } : f)),
               );
-              write(KEYS.fees, fees);
 
-              const fee = read<FeeRow[]>(KEYS.fees, []).find((f) => f.id === feeId);
               const txs = read<TxRow[]>(KEYS.transactions, []);
               txs.unshift({
                 id: `tx_${Date.now()}`,
                 date: new Date().toISOString(),
                 studentName: fee?.studentName ?? "Student",
                 fee: fee?.term ?? "School Fee",
-                amount: Number(r.amount) || feeAmount,
+                amount: resolvedAmount,
                 method: "Nomba Checkout",
-                reference: r.transactionRef || orderReference,
+                reference: resolvedRef,
                 status: "Paid",
               });
               write(KEYS.transactions, txs);
@@ -111,7 +122,7 @@ export function usePaymentPolling(onSuccess?: () => void): PollResult {
 
   useEffect(() => () => cleanup(), [cleanup]);
 
-  return { state, amount, transactionRef, secondsLeft, cancel, startPolling };
+  return { state, amount, transactionRef, studentName, feeType, secondsLeft, cancel, startPolling };
 }
 
 export function useResumePendingPayment(onSuccess?: () => void): PollResult {

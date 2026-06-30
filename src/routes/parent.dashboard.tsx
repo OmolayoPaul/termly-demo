@@ -8,6 +8,7 @@ import { KEYS, read, type FeeRow, type Student, type TxRow } from "../lib/storag
 import { fmtNaira, fmtDate } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
 import { useResumePendingPayment } from "../hooks/usePaymentPolling";
+import { downloadReceipt } from "../lib/receipt";
 
 export const Route = createFileRoute("/parent/dashboard")({ component: ParentDash });
 
@@ -66,22 +67,42 @@ function ParentDash() {
       )}
 
       {poll.state === "success" && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-success/40 bg-success-soft px-4 py-3 text-sm shadow-sm">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success text-white text-base">
-            ✓
+        <div className="mb-4 rounded-xl border border-success/40 bg-success-soft px-4 py-3 text-sm shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success text-white text-base">
+              ✓
+            </div>
+            <div className="flex-1">
+              <span className="font-semibold text-success">Payment confirmed!</span>
+              <span className="ml-2 text-muted-foreground">
+                {fmtNaira(poll.amount)} · Ref: {poll.transactionRef}
+              </span>
+            </div>
+            <button
+              onClick={() =>
+                downloadReceipt({
+                  reference: poll.transactionRef,
+                  date: new Date(),
+                  studentName: poll.studentName,
+                  feeType: poll.feeType,
+                  amount: poll.amount,
+                  method: "Nomba Checkout",
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success/90 shrink-0"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+              </svg>
+              Receipt
+            </button>
+            <button
+              onClick={poll.cancel}
+              className="text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              Dismiss
+            </button>
           </div>
-          <div className="flex-1">
-            <span className="font-semibold text-success">Payment confirmed!</span>
-            <span className="ml-2 text-muted-foreground">
-              {fmtNaira(poll.amount)} · Ref: {poll.transactionRef}
-            </span>
-          </div>
-          <button
-            onClick={poll.cancel}
-            className="text-xs text-muted-foreground underline hover:text-foreground"
-          >
-            Dismiss
-          </button>
         </div>
       )}
 
