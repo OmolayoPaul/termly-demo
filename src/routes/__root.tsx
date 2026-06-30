@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { Toaster } from "sonner";
+import { TestModeBanner, NombaFooter } from "../components/TestModeBanner";
+import { seedIfNeeded } from "../lib/storage";
 
 function NotFoundComponent() {
   return (
@@ -120,10 +123,21 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    seedIfNeeded();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="flex min-h-screen flex-col">
+        <TestModeBanner />
+        <div className="flex-1">
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </div>
+        <NombaFooter />
+      </div>
+      <Toaster richColors position="top-right" duration={4000} />
     </QueryClientProvider>
   );
 }

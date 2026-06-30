@@ -1,24 +1,45 @@
+import { KEYS, read, write, type User } from "./storage";
+
 export type Role = "admin" | "teacher" | "parent";
 
-const KEY = "termly_auth";
-
-export type Session = { role: Role; email: string };
+export type Session = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  phone?: string;
+};
 
 export function getSession(): Session | null {
   if (typeof window === "undefined") return null;
-  try { return JSON.parse(window.localStorage.getItem(KEY) || "null"); } catch { return null; }
+  return read<Session | null>(KEYS.currentUser, null);
 }
 
 export function setSession(s: Session) {
-  window.localStorage.setItem(KEY, JSON.stringify(s));
+  write(KEYS.currentUser, s);
 }
 
 export function clearSession() {
-  window.localStorage.removeItem(KEY);
+  if (typeof window !== "undefined") window.localStorage.removeItem(KEYS.currentUser);
 }
 
-export const demoCreds: Record<Role, { email: string; password: string }> = {
-  admin: { email: "admin@termly.com", password: "admin123" },
-  teacher: { email: "teacher@termly.com", password: "teacher123" },
-  parent: { email: "parent@termly.com", password: "parent123" },
+export const demoCreds: Record<Role, { email: string; password: string; name: string }> = {
+  admin: { email: "admin@termly.com", password: "Termly2026", name: "School Administrator" },
+  parent: { email: "parent@termly.com", password: "Parent2026", name: "Mr. Chidi Okonkwo" },
+  teacher: { email: "teacher@termly.com", password: "Teacher2026", name: "Mr. Adewale Okafor" },
 };
+
+export function authenticate(email: string, password: string, role: Role): Session | null {
+  const demo = demoCreds[role];
+  if (email === demo.email && password === demo.password) {
+    return { id: `demo-${role}`, name: demo.name, email, role };
+  }
+  const users = read<User[]>(KEYS.users, []);
+  const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === password && x.role === role);
+  if (u) return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone };
+  return null;
+}
+
+export function dashboardPathFor(role: Role): string {
+  return role === "admin" ? "/admin/dashboard" : role === "parent" ? "/parent/dashboard" : "/teacher/dashboard";
+}

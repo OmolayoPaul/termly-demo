@@ -5,8 +5,9 @@ import { clearSession, getSession } from "../lib/auth";
 export const Route = createFileRoute("/teacher")({ component: TeacherLayout });
 
 const nav: { to: string; label: string; exact?: boolean }[] = [
-  { to: "/teacher", label: "Dashboard", exact: true },
-  { to: "/teacher/salary", label: "Salary" },
+  { to: "/teacher/dashboard", label: "Dashboard" },
+  { to: "/teacher/salary", label: "Salary History" },
+  { to: "/teacher/profile", label: "Profile" },
 ];
 
 function TeacherLayout() {

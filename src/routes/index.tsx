@@ -1,14 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { demoCreds, setSession, type Role } from "../lib/auth";
+import { authenticate, dashboardPathFor, demoCreds, getSession, setSession, type Role } from "../lib/auth";
+import { SecuredByNomba } from "../components/TestModeBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Termly — Every Term, On Time" },
       { name: "description", content: "Termly school admin portal: manage fees, payroll, bills, and parent payments." },
-      { property: "og:title", content: "Termly — Every Term, On Time" },
-      { property: "og:description", content: "Termly school admin portal: manage fees, payroll, bills, and parent payments." },
     ],
   }),
   component: LoginPage,
@@ -22,19 +21,24 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const s = getSession();
+    if (s) nav({ to: dashboardPathFor(s.role) });
+  }, [nav]);
+
+  useEffect(() => {
     setEmail(demoCreds[role].email);
     setPassword(demoCreds[role].password);
   }, [role]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const c = demoCreds[role];
-    if (email !== c.email || password !== c.password) {
-      setError("Invalid credentials. Use the pre-filled demo values.");
+    const session = authenticate(email, password, role);
+    if (!session) {
+      setError("Invalid email or password for this role.");
       return;
     }
-    setSession({ role, email });
-    nav({ to: role === "admin" ? "/admin" : role === "teacher" ? "/teacher" : "/parent" });
+    setSession(session);
+    nav({ to: dashboardPathFor(role) });
   }
 
   return (
@@ -113,6 +117,15 @@ function LoginPage() {
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Demo credentials pre-filled above
           </p>
+          <p className="mt-2 text-center text-sm">
+            <span className="text-muted-foreground">Don't have an account? </span>
+            <Link to="/signup" className="font-semibold text-primary hover:underline">
+              Create one
+            </Link>
+          </p>
+          <div className="mt-4 flex justify-center">
+            <SecuredByNomba />
+          </div>
         </form>
       </div>
     </main>

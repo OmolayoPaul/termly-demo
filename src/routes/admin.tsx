@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clearSession, getSession } from "../lib/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 const nav: { to: string; label: string; exact?: boolean }[] = [
-  { to: "/admin", label: "Dashboard", exact: true },
+  { to: "/admin/dashboard", label: "Dashboard" },
   { to: "/admin/students", label: "Students" },
   { to: "/admin/fees", label: "Fees" },
   { to: "/admin/installments", label: "Installment Plans" },
@@ -21,6 +21,7 @@ const nav: { to: string; label: string; exact?: boolean }[] = [
 function AdminLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const s = getSession();
@@ -29,7 +30,7 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
+      <aside className={`${open ? "fixed inset-y-0 left-0 z-40 flex" : "hidden md:flex"} w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground`}>
         <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5">
           <img src="/logo.png" alt="" className="h-10 w-10 rounded-md bg-white object-contain p-0.5" />
           <div>
@@ -44,6 +45,7 @@ function AdminLayout() {
               <Link
                 key={n.to}
                 to={n.to as string}
+                onClick={() => setOpen(false)}
                 className={`block rounded-md px-3 py-2 transition ${
                   active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -67,9 +69,15 @@ function AdminLayout() {
           </button>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 overflow-x-auto px-8 py-8">
-        <Outlet />
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2 md:hidden">
+          <button onClick={() => setOpen((v) => !v)} className="rounded-md border border-border px-2 py-1 text-sm">☰ Menu</button>
+          <div className="text-sm font-bold">Termly Admin</div>
+        </div>
+        <main className="min-w-0 flex-1 overflow-x-auto px-4 py-6 md:px-8 md:py-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }
