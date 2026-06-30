@@ -1,0 +1,743 @@
+This is the Termly app imported from GitHub (originally built on 
+Lovable). It is a school fee, payroll and utilities management 
+system for Nigerian schools powered by Nomba payments API.
+
+The frontend is already built in React. Your job is to:
+1. Build a proper Express.js backend
+2. Move ALL Nomba API calls from frontend to backend
+3. Remove corsproxy.io from every URL
+4. Read all credentials from Replit environment secrets
+5. Serve the React frontend from Express
+6. Make everything work end to end with real payments
+
+================================================================
+CURRENT FRONTEND STRUCTURE
+================================================================
+The React app has these files that need updating:
+- src/config/nomba.ts → DELETE this file entirely
+- src/services/nomba.ts → UPDATE to call /api/nomba/* instead
+  of calling Nomba directly
+
+================================================================
+ENVIRONMENT SECRETS
+================================================================
+Read ALL credentials from process.env only.
+Never hardcode any value. Add these in Replit Secrets tab:
+
+NOMBA_CLIENT_ID          → TEST client ID
+NOMBA_PRIVATE_KEY        → TEST private key
+NOMBA_LIVE_CLIENT_ID     → LIVE client ID
+NOMBA_LIVE_PRIVATE_KEY   → LIVE private key
+NOMBA_PARENT_ACCOUNT_ID  → f666ef9b-888e-4799-85ce-acb505b28023
+NOMBA_SUB_ACCOUNT_ID     → 607f0de9-823d-4753-a31d-9794c53e2a36
+NOMBA_ENV                → test (change to live before submission)
+NOMBA_BASE_URL           → https://api.nomba.com/v1
+JWT_SECRET               → any long random string
+PORT                     → 3000
+
+================================================================
+BACKEND SETUP
+================================================================
+
+Install these packages:
+npm install express cors dotenv node-fetch helmet morgan
+npm install -D nodemon
+
+Create server/index.js as the main entry point:
+
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(cors());
+app.use(express.json());
+
+// API routes
+app.use('/api/nomba', require('./routes/nomba'));
+app.use('/api/webhooks', require('./routes/webhooks'));
+
+// Serve React frontend
+app.use(express.static(path.join(__dirname, '../dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Termly server running on port ${PORT}`);
+});
+
+================================================================
+NOMBA SERVICE (server/services/nomba.js)
+================================================================
+
+Create server/services/nomba.js:
+
+const fetch = require('node-fetch');
+
+const isLive = process.env.NOMBA_ENV === 'live';
+const BASE_URL = process.env.NOMBA_BASE_URL;
+const CLIENT_ID = isLive
+  ? process.env.NOMBA_LIVE_CLIENT_ID
+  : process.env.NOMBA_CLIENT_ID;
+const PRIVATE_KEY = isLive
+  ? process.env.NOMBA_LIVE_PRIVATE_KEY
+  : process.env.NOMBA_PRIVATE_KEY;
+const PARENT_ACCOUNT_ID = process.env.NOMBA_PARENT_ACCOUNT_ID;
+const SUB_ACCOUNT_ID = process.env.NOMBA_SUB_ACCOUNT_ID;
+
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getAccessToken() {
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
+  const response = await fetch(`${BASE_URL}/auth/token/issue`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'accountId': PARENT_ACCOUNT_ID
+    },
+    body: JSON.stringify({
+      grant_type: 'client_credentials',
+      client_id: CLIENT_ID,
+      client_secret: PRIVATE_KEY
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  cachedToken = data.data.access_token;
+  tokenExpiry = Date.now() + (data.data.expiresIn * 1000) - 300000;
+  console.log('Nomba token fetched successfully');
+  return cachedToken;
+}
+
+function getAuthHeaders(token) {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'accountId': PARENT_ACCOUNT_ID
+  };
+}
+
+async function createCheckoutOrder(
+  amount, customerEmail, customerName, 
+  callbackUrl, description
+) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/checkout/orders`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      orderReference: `TERMLY-${Date.now()}`,
+      customerId: customerEmail,
+      customerName,
+      amount,
+      currency: 'NGN',
+      callbackUrl,
+      description: description || 'School fee payment - Termly'
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    checkoutLink: data.data.checkoutLink,
+    orderReference: data.data.orderReference
+  };
+}
+
+async function verifyTransaction(orderReference) {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${BASE_URL}/checkout/orders/${orderReference}`,
+    { headers: getAuthHeaders(token) }
+  );
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    status: data.data.status,
+    amount: data.data.amount,
+    transactionRef: data.data.transactionRef
+  };
+}
+
+async function fetchNigerianBanks() {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/transfers/banks`, {
+    headers: getAuthHeaders(token)
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return data.data;
+}
+
+async function lookupBankAccount(bankCode, accountNumber) {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${BASE_URL}/transfers/bank/lookup?bankCode=${bankCode}&accountNumber=${accountNumber}`,
+    { headers: getAuthHeaders(token) }
+  );
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return { accountName: data.data.accountName };
+}
+
+async function transferToBank(
+  bankCode, accountNumber, accountName, amount, narration
+) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/transfers/bank`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      amount,
+      bankCode,
+      accountNumber,
+      accountName,
+      narration,
+      currency: 'NGN',
+      transactionReference: `TERMLY-PAY-${Date.now()}`
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    status: data.data.status,
+    transactionId: data.data.transactionId
+  };
+}
+
+async function createVirtualAccount(studentName, studentId) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/virtual-accounts`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      accountName: studentName + ' - Termly',
+      accountReference: 'STUDENT-' + studentId,
+      currency: 'NGN',
+      permanent: true
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    accountNumber: data.data.accountNumber,
+    bankName: data.data.bankName,
+    accountReference: data.data.accountReference
+  };
+}
+
+async function createDirectDebitMandate(
+  amount, startDate, phoneNumber, email
+) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/direct-debits`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      amount,
+      currency: 'NGN',
+      startDate,
+      frequency: 'MONTHLY',
+      customerPhone: phoneNumber,
+      customerEmail: email,
+      narration: 'Termly school fee installment'
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    mandateId: data.data.mandateId,
+    status: data.data.status,
+    nextDebitDate: data.data.nextDebitDate
+  };
+}
+
+async function fetchElectricityProviders() {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${BASE_URL}/bills/electricity-providers`,
+    { headers: getAuthHeaders(token) }
+  );
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return data.data;
+}
+
+async function lookupElectricityCustomer(
+  providerCode, meterNumber
+) {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${BASE_URL}/bills/electricity/lookup?providerCode=${providerCode}&meterNumber=${meterNumber}`,
+    { headers: getAuthHeaders(token) }
+  );
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return { customerName: data.data.customerName };
+}
+
+async function payElectricity(
+  providerCode, meterNumber, amount, customerName
+) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/bills/electricity`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      providerCode, meterNumber, amount,
+      customerName, currency: 'NGN'
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    status: data.data.status,
+    token: data.data.token,
+    reference: data.data.reference
+  };
+}
+
+async function fetchDataPlans(network) {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${BASE_URL}/airtime-data/data-plans?network=${network}`,
+    { headers: getAuthHeaders(token) }
+  );
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return data.data;
+}
+
+async function buyDataBundle(network, phone, planId, amount) {
+  const token = await getAccessToken();
+  const response = await fetch(`${BASE_URL}/airtime-data/data`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      network, phone, planId, amount, currency: 'NGN'
+    })
+  });
+  const data = await response.json();
+  if (data.code !== '00') throw new Error(data.description);
+  return {
+    status: data.data.status,
+    reference: data.data.reference
+  };
+}
+
+module.exports = {
+  getAccessToken,
+  createCheckoutOrder,
+  verifyTransaction,
+  fetchNigerianBanks,
+  lookupBankAccount,
+  transferToBank,
+  createVirtualAccount,
+  createDirectDebitMandate,
+  fetchElectricityProviders,
+  lookupElectricityCustomer,
+  payElectricity,
+  fetchDataPlans,
+  buyDataBundle
+};
+
+================================================================
+BACKEND ROUTES (server/routes/nomba.js)
+================================================================
+
+Create server/routes/nomba.js with these endpoints:
+
+const express = require('express');
+const router = express.Router();
+const nomba = require('../services/nomba');
+
+// Helper for error responses
+function handleError(res, err) {
+  console.error('Nomba API Error:', err.message);
+  const friendly = {
+    'Insufficient': 'Insufficient funds in account.',
+    'Invalid account': 'Account could not be verified.',
+    'not found': 'Record not found.',
+    'Unauthorized': 'Session expired. Please log in again.'
+  };
+  const message = Object.keys(friendly).find(k =>
+    err.message.includes(k)
+  );
+  res.status(400).json({
+    error: message
+      ? friendly[message]
+      : 'Payment service error. Please try again.'
+  });
+}
+
+// POST /api/nomba/checkout
+// Create checkout order for fee payment
+router.post('/checkout', async (req, res) => {
+  try {
+    const { amount, email, name, description } = req.body;
+    const callbackUrl = req.headers.origin + '/payment/callback';
+    const result = await nomba.createCheckoutOrder(
+      amount, email, name, callbackUrl, description
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// GET /api/nomba/verify/:orderReference
+// Verify payment status
+router.get('/verify/:orderReference', async (req, res) => {
+  try {
+    const result = await nomba.verifyTransaction(
+      req.params.orderReference
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// GET /api/nomba/banks
+// Fetch all Nigerian banks
+router.get('/banks', async (req, res) => {
+  try {
+    const banks = await nomba.fetchNigerianBanks();
+    res.json({ banks });
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/lookup
+// Verify bank account
+router.post('/lookup', async (req, res) => {
+  try {
+    const { bankCode, accountNumber } = req.body;
+    const result = await nomba.lookupBankAccount(
+      bankCode, accountNumber
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/transfer
+// Disburse salary to teacher
+router.post('/transfer', async (req, res) => {
+  try {
+    const {
+      bankCode, accountNumber,
+      accountName, amount, narration
+    } = req.body;
+    const result = await nomba.transferToBank(
+      bankCode, accountNumber, accountName, amount, narration
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/virtual-account
+// Create virtual account for student
+router.post('/virtual-account', async (req, res) => {
+  try {
+    const { studentName, studentId } = req.body;
+    const result = await nomba.createVirtualAccount(
+      studentName, studentId
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/direct-debit
+// Create installment mandate
+router.post('/direct-debit', async (req, res) => {
+  try {
+    const { amount, startDate, phoneNumber, email } = req.body;
+    const result = await nomba.createDirectDebitMandate(
+      amount, startDate, phoneNumber, email
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// GET /api/nomba/electricity/providers
+router.get('/electricity/providers', async (req, res) => {
+  try {
+    const providers = await nomba.fetchElectricityProviders();
+    res.json({ providers });
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/electricity/lookup
+router.post('/electricity/lookup', async (req, res) => {
+  try {
+    const { providerCode, meterNumber } = req.body;
+    const result = await nomba.lookupElectricityCustomer(
+      providerCode, meterNumber
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/electricity/pay
+router.post('/electricity/pay', async (req, res) => {
+  try {
+    const {
+      providerCode, meterNumber, amount, customerName
+    } = req.body;
+    const result = await nomba.payElectricity(
+      providerCode, meterNumber, amount, customerName
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+// GET /api/nomba/data/plans?network=MTN
+router.get('/data/plans', async (req, res) => {
+  try {
+    const plans = await nomba.fetchDataPlans(req.query.network);
+    res.json({ plans });
+  } catch (err) { handleError(res, err); }
+});
+
+// POST /api/nomba/data/buy
+router.post('/data/buy', async (req, res) => {
+  try {
+    const { network, phone, planId, amount } = req.body;
+    const result = await nomba.buyDataBundle(
+      network, phone, planId, amount
+    );
+    res.json(result);
+  } catch (err) { handleError(res, err); }
+});
+
+module.exports = router;
+
+================================================================
+WEBHOOK ROUTE (server/routes/webhooks.js)
+================================================================
+
+Create server/routes/webhooks.js:
+
+const express = require('express');
+const router = express.Router();
+
+router.post('/nomba', (req, res) => {
+  const event = req.body;
+  console.log('Nomba webhook received:', event.type);
+
+  switch(event.type) {
+    case 'checkout.completed':
+      console.log('Fee payment confirmed:', event.data);
+      break;
+    case 'transfer.success':
+      console.log('Salary transfer confirmed:', event.data);
+      break;
+    case 'transfer.failed':
+      console.log('Salary transfer failed:', event.data);
+      break;
+    case 'direct_debit.success':
+      console.log('Installment debited:', event.data);
+      break;
+    default:
+      console.log('Unknown event:', event.type);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+module.exports = router;
+
+================================================================
+UPDATE FRONTEND SERVICE FILE
+================================================================
+
+Find src/services/nomba.ts in the React app and replace 
+its entire content with this — it now calls our backend 
+instead of Nomba directly:
+
+const API_BASE = '/api/nomba';
+
+async function apiCall(
+  endpoint: string,
+  method: string = 'GET',
+  body?: any
+) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Request failed');
+  }
+  return response.json();
+}
+
+export async function createCheckoutOrder(
+  amount: number,
+  customerEmail: string,
+  customerName: string,
+  description?: string
+) {
+  return apiCall('/checkout', 'POST', {
+    amount, email: customerEmail,
+    name: customerName, description
+  });
+}
+
+export async function verifyTransaction(orderReference: string) {
+  return apiCall(`/verify/${orderReference}`);
+}
+
+export async function fetchNigerianBanks() {
+  const data = await apiCall('/banks');
+  return data.banks;
+}
+
+export async function lookupBankAccount(
+  bankCode: string,
+  accountNumber: string
+) {
+  return apiCall('/lookup', 'POST', { bankCode, accountNumber });
+}
+
+export async function transferToBank(
+  bankCode: string,
+  accountNumber: string,
+  accountName: string,
+  amount: number,
+  narration: string
+) {
+  return apiCall('/transfer', 'POST', {
+    bankCode, accountNumber, accountName, amount, narration
+  });
+}
+
+export async function createVirtualAccount(
+  studentName: string,
+  studentId: string
+) {
+  return apiCall('/virtual-account', 'POST', {
+    studentName, studentId
+  });
+}
+
+export async function createDirectDebitMandate(
+  amount: number,
+  startDate: string,
+  phoneNumber: string,
+  email: string
+) {
+  return apiCall('/direct-debit', 'POST', {
+    amount, startDate, phoneNumber, email
+  });
+}
+
+export async function fetchElectricityProviders() {
+  const data = await apiCall('/electricity/providers');
+  return data.providers;
+}
+
+export async function lookupElectricityCustomer(
+  providerCode: string,
+  meterNumber: string
+) {
+  return apiCall('/electricity/lookup', 'POST', {
+    providerCode, meterNumber
+  });
+}
+
+export async function payElectricity(
+  providerCode: string,
+  meterNumber: string,
+  amount: number,
+  customerName: string
+) {
+  return apiCall('/electricity/pay', 'POST', {
+    providerCode, meterNumber, amount, customerName
+  });
+}
+
+export async function fetchDataPlans(network: string) {
+  const data = await apiCall(`/data/plans?network=${network}`);
+  return data.plans;
+}
+
+export async function buyDataBundle(
+  network: string,
+  phone: string,
+  planId: string,
+  amount: number
+) {
+  return apiCall('/data/buy', 'POST', {
+    network, phone, planId, amount
+  });
+}
+
+Also DELETE src/config/nomba.ts entirely — credentials 
+are now only in Replit environment secrets.
+
+================================================================
+BUILD AND START
+================================================================
+
+Update root package.json scripts:
+{
+  "scripts": {
+    "dev": "nodemon server/index.js",
+    "start": "node server/index.js",
+    "build": "npm run build:client",
+    "build:client": "cd client && npm install && npm run build",
+    "setup": "npm install && npm run build:client"
+  }
+}
+
+Update .replit file:
+run = "npm start"
+
+Build steps:
+1. npm install (root)
+2. cd client && npm install && npm run build
+3. npm start
+
+================================================================
+REPLIT SECRETS TO ADD
+================================================================
+Add these in the Replit Secrets tab before running:
+
+NOMBA_CLIENT_ID = 706df6c4-b8bb-4130-88c4-d21b052f8631
+NOMBA_PRIVATE_KEY = k8UobYk3APgOoxUnNL7VpuxzwTsH4LsXtydfjcHs8RH0YISBB4OMqJsaafG+U8fWETu9YZ96bNXE+DelCDuMPw==
+NOMBA_PARENT_ACCOUNT_ID = f666ef9b-888e-4799-85ce-acb505b28023
+NOMBA_SUB_ACCOUNT_ID = 607f0de9-823d-4753-a31d-9794c53e2a36
+NOMBA_BASE_URL = https://api.nomba.com/v1
+NOMBA_ENV = test
+JWT_SECRET = termly-super-secret-jwt-2026-nomba-hackathon
+PORT = 3000
+
+NOMBA_LIVE_CLIENT_ID and NOMBA_LIVE_PRIVATE_KEY → 
+add these manually in Replit Secrets tab only 
+(not in this prompt)
+
+================================================================
+FINAL CHECKLIST
+================================================================
+After building confirm:
+1. npm start runs without errors
+2. Login page loads at root URL
+3. Admin can login with admin@termly.com / Termly2026
+4. Nomba token fetches successfully (check console log)
+5. Creating a student calls /api/nomba/virtual-account
+6. Parent paying fee calls /api/nomba/checkout
+7. Admin disbursing salary calls /api/nomba/transfer
+8. Webhook endpoint responds at /api/webhooks/nomba
+9. All pages load correctly
+10. No corsproxy.io anywhere in the codebase
+
+Webhook URL to submit to Nomba:
+https://[your-replit-url]/api/webhooks/nomba

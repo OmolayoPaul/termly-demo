@@ -22,13 +22,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bun run dev"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server/index.js & bun run dev"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
@@ -38,3 +38,15 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["bun", "run", "preview"]
 build = ["bun", "run", "build"]
+
+[userenv]
+
+[userenv.shared]
+NOMBA_CLIENT_ID = "706df6c4-b8bb-4130-88c4-d21b052f8631"
+NOMBA_PRIVATE_KEY = "k8UobYk3APgOoxUnNL7VpuxzwTsH4LsXtydfjcHs8RH0YISBB4OMqJsaafG+U8fWETu9YZ96bNXE+DelCDuMPw=="
+NOMBA_PARENT_ACCOUNT_ID = "f666ef9b-888e-4799-85ce-acb505b28023"
+NOMBA_SUB_ACCOUNT_ID = "607f0de9-823d-4753-a31d-9794c53e2a36"
+NOMBA_BASE_URL = "https://api.nomba.com/v1"
+NOMBA_ENV = "test"
+JWT_SECRET = "termly-super-secret-jwt-2026-nomba-hackathon"
+PORT = "3001"

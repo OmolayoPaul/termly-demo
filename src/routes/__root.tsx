@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "sonner";
-import { TestModeBanner, NombaFooter } from "../components/TestModeBanner";
+import { NombaFooter } from "../components/TestModeBanner";
 import { seedIfNeeded } from "../lib/storage";
 
 function NotFoundComponent() {
@@ -130,7 +130,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-screen flex-col">
-        <TestModeBanner />
         <div className="flex-1">
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
