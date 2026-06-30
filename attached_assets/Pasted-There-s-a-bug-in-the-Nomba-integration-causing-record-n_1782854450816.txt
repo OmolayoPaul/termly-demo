@@ -1,0 +1,67 @@
+There's a bug in the Nomba integration causing "record not found" 
+errors when verifying payments. The root cause is likely incorrect 
+account ID scoping — per Nomba's docs, you authenticate using the 
+PARENT account ID, but every subsequent API call (checkout, verify, 
+transfer, lookup, virtual-account, direct-debit, bills) should be 
+scoped to the SUB-account ID instead.
+
+Account IDs:
+PARENT_ACCOUNT_ID = f666ef9b-888e-4799-85ce-acb505b28023
+SUB_ACCOUNT_ID = 607f0de9-823d-4753-a31d-9794c53e2a36
+
+(These should already be in Replit Secrets as 
+NOMBA_PARENT_ACCOUNT_ID and NOMBA_SUB_ACCOUNT_ID — confirm they 
+match the values above. Do NOT touch NOMBA_CLIENT_ID or 
+NOMBA_PRIVATE_KEY values, those stay as whatever is currently in 
+Secrets.)
+
+Fix this in server/services/nomba.js:
+
+1. Find the getAccessToken() function. Keep it using 
+   PARENT_ACCOUNT_ID (f666ef9b-888e-4799-85ce-acb505b28023) in the 
+   accountId header — this part is correct, authentication happens 
+   at the parent level.
+
+2. Find the getAuthHeaders() function (or wherever the accountId 
+   header is set for all OTHER calls). Change it from using 
+   PARENT_ACCOUNT_ID to using SUB_ACCOUNT_ID 
+   (607f0de9-823d-4753-a31d-9794c53e2a36) for every call EXCEPT 
+   the token request itself.
+
+3. Make sure SUB_ACCOUNT_ID is being read correctly from 
+   process.env.NOMBA_SUB_ACCOUNT_ID at the top of the file, the 
+   same way PARENT_ACCOUNT_ID is read from 
+   process.env.NOMBA_PARENT_ACCOUNT_ID.
+
+4. Add detailed logging so we can diagnose any future issues. In 
+   every function in nomba.js, before throwing an error, log the 
+   full raw response from Nomba:
+
+   console.log('Nomba raw response:', JSON.stringify(data, null, 2));
+
+   Do this in createCheckoutOrder, verifyTransaction, 
+   lookupBankAccount, transferToBank, createVirtualAccount, 
+   createDirectDebitMandate, and all bills functions — right 
+   before the `if (data.code !== '00') throw new Error(...)` line.
+
+5. Also log which accountId header was used on each request, so 
+   we can confirm in the console whether parent or sub-account ID 
+   was sent:
+
+   console.log('Using accountId header:', accountId, 
+     'for endpoint:', endpoint);
+
+6. After making these changes, restart the server and do NOT 
+   change any other logic — this is a targeted fix, not a rebuild.
+
+7. Confirm in the console logs that:
+   - Token request uses f666ef9b-888e-4799-85ce-acb505b28023 
+     (parent)
+   - All other requests (checkout, verify, etc.) use 
+     607f0de9-823d-4753-a31d-9794c53e2a36 (sub-account)
+   - Show me the exact log output structure so I can verify this 
+     is correct before testing a real payment
+
+Do not touch the frontend, routes, or webhook files, and do not 
+touch NOMBA_CLIENT_ID or NOMBA_PRIVATE_KEY — only fix the 
+accountId scoping logic in server/services/nomba.js.
