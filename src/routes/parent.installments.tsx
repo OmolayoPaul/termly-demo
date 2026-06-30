@@ -1,41 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
+import { KEYS, read, type Mandate } from "../lib/storage";
+import { fmtNaira, fmtDate } from "../lib/format";
 
 export const Route = createFileRoute("/parent/installments")({ component: Page });
 
-const rows = [
-  { id: "1", amount: 5000, paid: 5000, due: "2/28/2026", status: "paid" },
-  { id: "2", amount: 5000, paid: 0, due: "3/31/2026", status: "pending" },
-];
-
 function Page() {
+  const rows = read<Mandate[]>(KEYS.mandates, []);
   return (
     <>
-      <PageHeader title="Installment Plans" subtitle="Manage your payment installments." actions={
-        <button className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">Request Installment</button>
-      } />
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="px-5 py-3 font-medium">Amount</th>
-              <th className="px-5 py-3 font-medium">Amount Paid</th>
-              <th className="px-5 py-3 font-medium">Due Date</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="px-5 py-3 font-medium">${r.amount.toLocaleString()}</td>
-                <td className="px-5 py-3">${r.paid.toLocaleString()}</td>
-                <td className="px-5 py-3 text-muted-foreground">{r.due}</td>
-                <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <PageHeader title="Installments" subtitle="Your active direct debit plans." />
+      <div className="grid gap-4 md:grid-cols-2">
+        {rows.map((m) => {
+          const pct = m.months > 0 ? (m.monthsPaid / m.months) * 100 : 0;
+          return (
+            <div key={m.id} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div><div className="font-semibold">{m.studentName}</div><div className="text-xs text-muted-foreground">{m.monthsPaid} / {m.months} months</div></div>
+                <StatusBadge status={m.status} />
+              </div>
+              <div className="mt-2 text-2xl font-bold">{fmtNaira(m.amount)}<span className="text-sm font-normal text-muted-foreground"> /month</span></div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary"><div className="h-full bg-primary" style={{ width: `${pct}%` }} /></div>
+              <div className="mt-2 text-xs text-muted-foreground">Next debit: {fmtDate(m.nextDebitDate)}</div>
+            </div>
+          );
+        })}
+        {rows.length === 0 && (
+          <div className="col-span-full rounded-xl border border-dashed border-border bg-card p-10 text-center">
+            <div className="text-3xl">💳</div><p className="mt-2 text-sm text-muted-foreground">No active installment plans.</p>
+          </div>
+        )}
       </div>
     </>
   );

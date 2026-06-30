@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeacherRouteImport } from './routes/teacher'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ParentRouteImport } from './routes/parent'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,20 +18,30 @@ import { Route as TeacherIndexRouteImport } from './routes/teacher.index'
 import { Route as ParentIndexRouteImport } from './routes/parent.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TeacherSalaryRouteImport } from './routes/teacher.salary'
+import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
+import { Route as TeacherDashboardRouteImport } from './routes/teacher.dashboard'
+import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
+import { Route as ParentTransactionsRouteImport } from './routes/parent.transactions'
 import { Route as ParentInstallmentsRouteImport } from './routes/parent.installments'
-import { Route as ParentHistoryRouteImport } from './routes/parent.history'
 import { Route as ParentFeesRouteImport } from './routes/parent.fees'
+import { Route as ParentDashboardRouteImport } from './routes/parent.dashboard'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminRemindersRouteImport } from './routes/admin.reminders'
 import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
 import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
 import { Route as AdminFeesRouteImport } from './routes/admin.fees'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminBillsRouteImport } from './routes/admin.bills'
 
 const TeacherRoute = TeacherRouteImport.update({
   id: '/teacher',
   path: '/teacher',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ParentRoute = ParentRouteImport.update({
@@ -68,19 +79,39 @@ const TeacherSalaryRoute = TeacherSalaryRouteImport.update({
   path: '/salary',
   getParentRoute: () => TeacherRoute,
 } as any)
+const TeacherProfileRoute = TeacherProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const TeacherDashboardRoute = TeacherDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => TeacherRoute,
+} as any)
+const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
+  id: '/payment/callback',
+  path: '/payment/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParentTransactionsRoute = ParentTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => ParentRoute,
+} as any)
 const ParentInstallmentsRoute = ParentInstallmentsRouteImport.update({
   id: '/installments',
   path: '/installments',
   getParentRoute: () => ParentRoute,
 } as any)
-const ParentHistoryRoute = ParentHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => ParentRoute,
-} as any)
 const ParentFeesRoute = ParentFeesRouteImport.update({
   id: '/fees',
   path: '/fees',
+  getParentRoute: () => ParentRoute,
+} as any)
+const ParentDashboardRoute = ParentDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => ParentRoute,
 } as any)
 const AdminTransactionsRoute = AdminTransactionsRouteImport.update({
@@ -113,6 +144,11 @@ const AdminFeesRoute = AdminFeesRouteImport.update({
   path: '/fees',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBillsRoute = AdminBillsRouteImport.update({
   id: '/bills',
   path: '/bills',
@@ -123,17 +159,23 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/parent': typeof ParentRouteWithChildren
+  '/signup': typeof SignupRoute
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/bills': typeof AdminBillsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fees': typeof AdminFeesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
-  '/parent/history': typeof ParentHistoryRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/transactions': typeof ParentTransactionsRoute
+  '/payment/callback': typeof PaymentCallbackRoute
+  '/teacher/dashboard': typeof TeacherDashboardRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
   '/admin/': typeof AdminIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -141,16 +183,22 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/signup': typeof SignupRoute
   '/admin/bills': typeof AdminBillsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fees': typeof AdminFeesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
-  '/parent/history': typeof ParentHistoryRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/transactions': typeof ParentTransactionsRoute
+  '/payment/callback': typeof PaymentCallbackRoute
+  '/teacher/dashboard': typeof TeacherDashboardRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
   '/admin': typeof AdminIndexRoute
   '/parent': typeof ParentIndexRoute
@@ -161,17 +209,23 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/parent': typeof ParentRouteWithChildren
+  '/signup': typeof SignupRoute
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/bills': typeof AdminBillsRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fees': typeof AdminFeesRoute
   '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
-  '/parent/history': typeof ParentHistoryRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/transactions': typeof ParentTransactionsRoute
+  '/payment/callback': typeof PaymentCallbackRoute
+  '/teacher/dashboard': typeof TeacherDashboardRoute
+  '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
   '/admin/': typeof AdminIndexRoute
   '/parent/': typeof ParentIndexRoute
@@ -183,17 +237,23 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/parent'
+    | '/signup'
     | '/teacher'
     | '/admin/bills'
+    | '/admin/dashboard'
     | '/admin/fees'
     | '/admin/installments'
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
     | '/admin/transactions'
+    | '/parent/dashboard'
     | '/parent/fees'
-    | '/parent/history'
     | '/parent/installments'
+    | '/parent/transactions'
+    | '/payment/callback'
+    | '/teacher/dashboard'
+    | '/teacher/profile'
     | '/teacher/salary'
     | '/admin/'
     | '/parent/'
@@ -201,16 +261,22 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/signup'
     | '/admin/bills'
+    | '/admin/dashboard'
     | '/admin/fees'
     | '/admin/installments'
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
     | '/admin/transactions'
+    | '/parent/dashboard'
     | '/parent/fees'
-    | '/parent/history'
     | '/parent/installments'
+    | '/parent/transactions'
+    | '/payment/callback'
+    | '/teacher/dashboard'
+    | '/teacher/profile'
     | '/teacher/salary'
     | '/admin'
     | '/parent'
@@ -220,17 +286,23 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/parent'
+    | '/signup'
     | '/teacher'
     | '/admin/bills'
+    | '/admin/dashboard'
     | '/admin/fees'
     | '/admin/installments'
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
     | '/admin/transactions'
+    | '/parent/dashboard'
     | '/parent/fees'
-    | '/parent/history'
     | '/parent/installments'
+    | '/parent/transactions'
+    | '/payment/callback'
+    | '/teacher/dashboard'
+    | '/teacher/profile'
     | '/teacher/salary'
     | '/admin/'
     | '/parent/'
@@ -241,7 +313,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   ParentRoute: typeof ParentRouteWithChildren
+  SignupRoute: typeof SignupRoute
   TeacherRoute: typeof TeacherRouteWithChildren
+  PaymentCallbackRoute: typeof PaymentCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -251,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/teacher'
       fullPath: '/teacher'
       preLoaderRoute: typeof TeacherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parent': {
@@ -302,6 +383,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeacherSalaryRouteImport
       parentRoute: typeof TeacherRoute
     }
+    '/teacher/profile': {
+      id: '/teacher/profile'
+      path: '/profile'
+      fullPath: '/teacher/profile'
+      preLoaderRoute: typeof TeacherProfileRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/teacher/dashboard': {
+      id: '/teacher/dashboard'
+      path: '/dashboard'
+      fullPath: '/teacher/dashboard'
+      preLoaderRoute: typeof TeacherDashboardRouteImport
+      parentRoute: typeof TeacherRoute
+    }
+    '/payment/callback': {
+      id: '/payment/callback'
+      path: '/payment/callback'
+      fullPath: '/payment/callback'
+      preLoaderRoute: typeof PaymentCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parent/transactions': {
+      id: '/parent/transactions'
+      path: '/transactions'
+      fullPath: '/parent/transactions'
+      preLoaderRoute: typeof ParentTransactionsRouteImport
+      parentRoute: typeof ParentRoute
+    }
     '/parent/installments': {
       id: '/parent/installments'
       path: '/installments'
@@ -309,18 +418,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentInstallmentsRouteImport
       parentRoute: typeof ParentRoute
     }
-    '/parent/history': {
-      id: '/parent/history'
-      path: '/history'
-      fullPath: '/parent/history'
-      preLoaderRoute: typeof ParentHistoryRouteImport
-      parentRoute: typeof ParentRoute
-    }
     '/parent/fees': {
       id: '/parent/fees'
       path: '/fees'
       fullPath: '/parent/fees'
       preLoaderRoute: typeof ParentFeesRouteImport
+      parentRoute: typeof ParentRoute
+    }
+    '/parent/dashboard': {
+      id: '/parent/dashboard'
+      path: '/dashboard'
+      fullPath: '/parent/dashboard'
+      preLoaderRoute: typeof ParentDashboardRouteImport
       parentRoute: typeof ParentRoute
     }
     '/admin/transactions': {
@@ -365,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFeesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/bills': {
       id: '/admin/bills'
       path: '/bills'
@@ -377,6 +493,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBillsRoute: typeof AdminBillsRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
   AdminFeesRoute: typeof AdminFeesRoute
   AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminPayrollRoute: typeof AdminPayrollRoute
@@ -388,6 +505,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBillsRoute: AdminBillsRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
   AdminFeesRoute: AdminFeesRoute,
   AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminPayrollRoute: AdminPayrollRoute,
@@ -400,16 +518,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface ParentRouteChildren {
+  ParentDashboardRoute: typeof ParentDashboardRoute
   ParentFeesRoute: typeof ParentFeesRoute
-  ParentHistoryRoute: typeof ParentHistoryRoute
   ParentInstallmentsRoute: typeof ParentInstallmentsRoute
+  ParentTransactionsRoute: typeof ParentTransactionsRoute
   ParentIndexRoute: typeof ParentIndexRoute
 }
 
 const ParentRouteChildren: ParentRouteChildren = {
+  ParentDashboardRoute: ParentDashboardRoute,
   ParentFeesRoute: ParentFeesRoute,
-  ParentHistoryRoute: ParentHistoryRoute,
   ParentInstallmentsRoute: ParentInstallmentsRoute,
+  ParentTransactionsRoute: ParentTransactionsRoute,
   ParentIndexRoute: ParentIndexRoute,
 }
 
@@ -417,11 +537,15 @@ const ParentRouteWithChildren =
   ParentRoute._addFileChildren(ParentRouteChildren)
 
 interface TeacherRouteChildren {
+  TeacherDashboardRoute: typeof TeacherDashboardRoute
+  TeacherProfileRoute: typeof TeacherProfileRoute
   TeacherSalaryRoute: typeof TeacherSalaryRoute
   TeacherIndexRoute: typeof TeacherIndexRoute
 }
 
 const TeacherRouteChildren: TeacherRouteChildren = {
+  TeacherDashboardRoute: TeacherDashboardRoute,
+  TeacherProfileRoute: TeacherProfileRoute,
   TeacherSalaryRoute: TeacherSalaryRoute,
   TeacherIndexRoute: TeacherIndexRoute,
 }
@@ -433,7 +557,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   ParentRoute: ParentRouteWithChildren,
+  SignupRoute: SignupRoute,
   TeacherRoute: TeacherRouteWithChildren,
+  PaymentCallbackRoute: PaymentCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

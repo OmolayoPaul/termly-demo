@@ -5,10 +5,10 @@ import { clearSession, getSession } from "../lib/auth";
 export const Route = createFileRoute("/parent")({ component: ParentLayout });
 
 const nav: { to: string; label: string; exact?: boolean }[] = [
-  { to: "/parent", label: "Dashboard", exact: true },
+  { to: "/parent/dashboard", label: "Dashboard" },
   { to: "/parent/fees", label: "Pay Fees" },
   { to: "/parent/installments", label: "Installments" },
-  { to: "/parent/history", label: "History" },
+  { to: "/parent/transactions", label: "Transactions" },
 ];
 
 function ParentLayout() {
