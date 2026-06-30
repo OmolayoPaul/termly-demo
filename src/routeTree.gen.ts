@@ -22,7 +22,10 @@ import { Route as TeacherDashboardRouteImport } from './routes/teacher.dashboard
 import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as ParentTransactionsRouteImport } from './routes/parent.transactions'
 import { Route as ParentDashboardRouteImport } from './routes/parent.dashboard'
+import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminRemindersRouteImport } from './routes/admin.reminders'
+import { Route as AdminInstallmentsRouteImport } from './routes/admin.installments'
+import { Route as AdminFeesRouteImport } from './routes/admin.fees'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 
 const TeacherRoute = TeacherRouteImport.update({
@@ -90,9 +93,24 @@ const ParentDashboardRoute = ParentDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ParentRoute,
 } as any)
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRemindersRoute = AdminRemindersRouteImport.update({
   id: '/reminders',
   path: '/reminders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInstallmentsRoute = AdminInstallmentsRouteImport.update({
+  id: '/installments',
+  path: '/installments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeesRoute = AdminFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
@@ -108,7 +126,10 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
@@ -122,7 +143,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/signup': typeof SignupRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
@@ -140,7 +164,10 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/fees': typeof AdminFeesRoute
+  '/admin/installments': typeof AdminInstallmentsRoute
   '/admin/reminders': typeof AdminRemindersRoute
+  '/admin/students': typeof AdminStudentsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
@@ -159,7 +186,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/teacher'
     | '/admin/dashboard'
+    | '/admin/fees'
+    | '/admin/installments'
     | '/admin/reminders'
+    | '/admin/students'
     | '/parent/dashboard'
     | '/parent/transactions'
     | '/payment/callback'
@@ -173,7 +203,10 @@ export interface FileRouteTypes {
     | '/'
     | '/signup'
     | '/admin/dashboard'
+    | '/admin/fees'
+    | '/admin/installments'
     | '/admin/reminders'
+    | '/admin/students'
     | '/parent/dashboard'
     | '/parent/transactions'
     | '/payment/callback'
@@ -190,7 +223,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/teacher'
     | '/admin/dashboard'
+    | '/admin/fees'
+    | '/admin/installments'
     | '/admin/reminders'
+    | '/admin/students'
     | '/parent/dashboard'
     | '/parent/transactions'
     | '/payment/callback'
@@ -303,11 +339,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentDashboardRouteImport
       parentRoute: typeof ParentRoute
     }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/reminders': {
       id: '/admin/reminders'
       path: '/reminders'
       fullPath: '/admin/reminders'
       preLoaderRoute: typeof AdminRemindersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/installments': {
+      id: '/admin/installments'
+      path: '/installments'
+      fullPath: '/admin/installments'
+      preLoaderRoute: typeof AdminInstallmentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/fees': {
+      id: '/admin/fees'
+      path: '/fees'
+      fullPath: '/admin/fees'
+      preLoaderRoute: typeof AdminFeesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/dashboard': {
@@ -322,13 +379,19 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminFeesRoute: typeof AdminFeesRoute
+  AdminInstallmentsRoute: typeof AdminInstallmentsRoute
   AdminRemindersRoute: typeof AdminRemindersRoute
+  AdminStudentsRoute: typeof AdminStudentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminFeesRoute: AdminFeesRoute,
+  AdminInstallmentsRoute: AdminInstallmentsRoute,
   AdminRemindersRoute: AdminRemindersRoute,
+  AdminStudentsRoute: AdminStudentsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
