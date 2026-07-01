@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "zjsphUCoyT5MLTiPHQ4Xv"
+uri = "file://public/og-image.png"
+type = "image"
+title = "termly og preview card"

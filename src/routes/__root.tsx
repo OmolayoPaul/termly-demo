@@ -86,12 +86,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Termly — School Fee Collection, Payroll & Utility Payments" },
       { property: "og:description", content: "Termly helps Nigerian schools collect fees, run payroll, and pay utility bills — all powered by Nomba payments." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Termly" },
       { name: "twitter:title", content: "Termly — School Fee Collection, Payroll & Utility Payments" },
       { name: "twitter:description", content: "Termly helps Nigerian schools collect fees, run payroll, and pay utility bills — all powered by Nomba payments." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f256ac0e-0a14-42fc-9ae8-50927144c5ca/id-preview-31807040--771a892d-8118-41e1-979c-a0a0578c825f.lovable.app-1782722288488.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f256ac0e-0a14-42fc-9ae8-50927144c5ca/id-preview-31807040--771a892d-8118-41e1-979c-a0a0578c825f.lovable.app-1782722288488.png" },
+      { property: "og:image", content: "/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:image", content: "/og-image.png" },
     ],
     links: [
       {
