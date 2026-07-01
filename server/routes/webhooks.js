@@ -144,6 +144,21 @@ router.get('/event/:ref', (req, res) => {
   res.json({ found: true, ...event });
 });
 
+/**
+ * GET /api/webhooks/recent?since=<ms timestamp>
+ * Returns all events received after the given timestamp (or last 5 min if omitted).
+ * Used by the admin notification badge.
+ */
+router.get('/recent', (req, res) => {
+  pruneExpired();
+  const since = Number(req.query.since) || (Date.now() - 5 * 60 * 1000);
+  const events = [...webhookEvents.values()]
+    .filter((e) => e.receivedAt > since)
+    .sort((a, b) => b.receivedAt - a.receivedAt)
+    .slice(0, 50);
+  res.json({ events, count: events.length, serverTime: Date.now() });
+});
+
 /** GET /api/webhooks/health — Sanity check */
 router.get('/health', (_req, res) => {
   res.json({ eventCount: webhookEvents.size, uptime: process.uptime() });

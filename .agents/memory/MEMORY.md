@@ -1,1 +1,2 @@
 - [Production deployment architecture](prod-deploy-arch.md) — @lovable.dev/vite-tanstack-config defaults to Cloudflare Workers; must set node-server preset + dual-process gateway for Replit
+- [Nomba transfer API quirks](nomba-transfer-quirks.md) — transfers need parent accountId header + merchantTxRef field + sourceAccountId body field; lookup also needs parent header

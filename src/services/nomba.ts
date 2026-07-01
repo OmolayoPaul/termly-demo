@@ -3,14 +3,12 @@ const API_BASE = '/api/nomba';
 export function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? '');
   const m = msg.toLowerCase();
-  if (m.includes('fail') && m.includes('fetch')) return 'Payment service unavailable. Try again.';
+  // Network / fetch failures (these have no useful message from Nomba)
+  if (m.includes('failed to fetch') || (m.includes('fail') && m.includes('fetch')))
+    return 'Payment service unavailable. Check your connection and try again.';
   if (m.includes('cors')) return 'Payment service unavailable. Try again.';
-  if (m.includes('network')) return 'Payment service unavailable. Try again.';
-  if (m.includes('unauthor') || m.includes('token') || m.includes('expired'))
-    return 'Session expired. Please log in again.';
-  if (m.includes('insufficient')) return 'Insufficient funds in account.';
-  if (m.includes('invalid account') || m.includes('account name')) return 'Account could not be verified.';
-  if (m.includes('transfer')) return 'Transfer failed. Contact support.';
+  if (m.includes('networkerror') || m.includes('network error')) return 'Network error. Try again.';
+  // Pass through all other messages as-is — they come from the backend which already formats them
   return msg || 'Something went wrong.';
 }
 

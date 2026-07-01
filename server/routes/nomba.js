@@ -6,13 +6,17 @@ const router = express.Router();
 function handleError(res, err) {
   console.error('[Nomba API Error]', err.message);
   const map = {
-    Insufficient: 'Insufficient funds in account.',
+    'Insufficient': 'Insufficient funds in account.',
     'Invalid account': 'Account could not be verified.',
     'not found': 'Record not found.',
-    Unauthorized: 'Session expired. Please log in again.',
+    'Resource not found': 'Record not found.',
+    'Unauthorized': 'Session expired. Please log in again.',
+    'Forbidden': 'Transfer not permitted. Check that your Nomba account has outbound transfers enabled.',
+    'unexpected system error': 'Bank lookup failed. Please verify the account number and try again.',
   };
-  const key = Object.keys(map).find((k) => err.message.includes(k));
-  res.status(400).json({ error: key ? map[key] : 'Payment service error. Please try again.' });
+  const key = Object.keys(map).find((k) => err.message.toLowerCase().includes(k.toLowerCase()));
+  const friendly = key ? map[key] : err.message || 'Payment service error. Please try again.';
+  res.status(400).json({ error: friendly });
 }
 
 router.post('/checkout', async (req, res) => {

@@ -1,0 +1,126 @@
+The app is live at https://termly-demo--omolayopaul2003.replit.app
+but payments to another account (bank transfers/payroll) are failing.
+
+Do a full diagnosis and fix all issues:
+
+================================================================
+STEP 1 — CHECK BACKEND IS RUNNING
+================================================================
+Run: curl http://localhost:3000/api/nomba/banks
+If this fails the backend is not running or routes are missing.
+
+Check:
+- Does server/index.js exist?
+- Is it running via npm start?
+- Are all routes mounted correctly?
+- Check console for any startup errors
+
+================================================================
+STEP 2 — TEST NOMBA AUTHENTICATION
+================================================================
+Run this in the shell to test the token:
+
+node -e "
+const fetch = require('node-fetch');
+fetch('https://api.nomba.com/v1/auth/token/issue', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'accountId': process.env.NOMBA_PARENT_ACCOUNT_ID
+  },
+  body: JSON.stringify({
+    grant_type: 'client_credentials',
+    client_id: process.env.NOMBA_CLIENT_ID,
+    client_secret: process.env.NOMBA_PRIVATE_KEY
+  })
+}).then(r => r.json()).then(d => console.log(JSON.stringify(d, null, 2)));
+"
+
+If this returns code !== '00' the credentials are wrong.
+Check all secrets are set correctly in Replit Secrets tab.
+
+================================================================
+STEP 3 — TEST BANK LOOKUP ENDPOINT
+================================================================
+Run:
+curl -X POST http://localhost:3000/api/nomba/lookup \
+  -H "Content-Type: application/json" \
+  -d '{"bankCode":"058","accountNumber":"0123456789"}'
+
+If this fails:
+- Check /api/nomba/lookup route exists in server/routes/nomba.js
+- Check lookupBankAccount() is exported from server/services/nomba.js
+- Check error message in console
+
+================================================================
+STEP 4 — TEST TRANSFER ENDPOINT
+================================================================
+Run:
+curl -X POST http://localhost:3000/api/nomba/transfer \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bankCode": "058",
+    "accountNumber": "0123456789",
+    "accountName": "Test Account",
+    "amount": 100,
+    "narration": "Test transfer"
+  }'
+
+Check response and console logs.
+
+================================================================
+STEP 5 — FIX FRONTEND CALLING BACKEND
+================================================================
+Check src/services/nomba.ts (or .js) in the React app:
+
+It MUST look like this — calling /api/nomba/* not Nomba directly:
+
+const API_BASE = '/api/nomba';
+
+async function apiCall(endpoint, method = 'GET', body) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error || 'Request failed');
+  }
+  return response.json();
+}
+
+If it still has corsproxy.io or calls api.nomba.com directly,
+replace it entirely with the apiCall wrapper above.
+
+Also check src/config/nomba.ts — DELETE this file if it exists.
+Credentials must only be in Replit Secrets.
+
+================================================================
+STEP 6 — CHECK SECRETS ARE SET
+================================================================
+Run: node -e "console.log({
+  clientId: process.env.NOMBA_CLIENT_ID ? 'SET' : 'MISSING',
+  privateKey: process.env.NOMBA_PRIVATE_KEY ? 'SET' : 'MISSING',
+  parentAccountId: process.env.NOMBA_PARENT_ACCOUNT_ID ? 'SET' : 'MISSING',
+  subAccountId: process.env.NOMBA_SUB_ACCOUNT_ID ? 'SET' : 'MISSING',
+  baseUrl: process.env.NOMBA_BASE_URL ? 'SET' : 'MISSING',
+  env: process.env.NOMBA_ENV
+})"
+
+Any MISSING secret will break all payments. Add missing ones
+in Replit Secrets tab immediately.
+
+================================================================
+STEP 7 — REBUILD AND RESTART
+================================================================
+After all fixes:
+1. npm run build:client (rebuild React frontend)
+2. npm start (restart server)
+3. Test bank lookup on the payroll page
+4. Test transfer on the payroll page
+5. Confirm no corsproxy.io anywhere in codebase:
+   grep -r "corsproxy" src/
+
+Show me the output of every command above so I can 
+confirm everything is working.

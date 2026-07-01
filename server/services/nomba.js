@@ -36,6 +36,12 @@ function authHeaders(token, endpoint = '') {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', accountId: SUB_ACCOUNT_ID };
 }
 
+// Transfers debit from parent account level — use PARENT account ID in header
+function transferHeaders(token, endpoint = '') {
+  console.log('[Nomba] Using accountId header:', PARENT_ACCOUNT_ID, 'for endpoint:', endpoint, '(PARENT — transfer)');
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', accountId: PARENT_ACCOUNT_ID };
+}
+
 export async function createCheckoutOrder(amount, customerEmail, customerName, callbackUrl, webhookUrl, description) {
   const token = await getAccessToken();
   const body = {
@@ -87,7 +93,7 @@ export async function fetchNigerianBanks() {
 export async function lookupBankAccount(bankCode, accountNumber) {
   const token = await getAccessToken();
   const endpoint = `/transfers/bank/lookup?bankCode=${bankCode}&accountNumber=${accountNumber}`;
-  const response = await fetch(`${BASE_URL}${endpoint}`, { headers: authHeaders(token, endpoint) });
+  const response = await fetch(`${BASE_URL}${endpoint}`, { headers: transferHeaders(token, endpoint) });
   const data = await response.json();
   if (data.code !== '00') {
     console.log('Nomba raw response:', JSON.stringify(data, null, 2));
@@ -100,18 +106,27 @@ export async function transferToBank(bankCode, accountNumber, accountName, amoun
   const token = await getAccessToken();
   const response = await fetch(`${BASE_URL}/transfers/bank`, {
     method: 'POST',
-    headers: authHeaders(token, '/transfers/bank'),
+    headers: transferHeaders(token, '/transfers/bank'),
     body: JSON.stringify({
-      amount, bankCode, accountNumber, accountName, narration,
-      currency: 'NGN', transactionReference: `TERMLY-PAY-${Date.now()}`,
+      amount,
+      bankCode,
+      accountNumber,
+      accountName,
+      narration,
+      currency: 'NGN',
+      merchantTxRef: `TERMLY-PAY-${Date.now()}`,
+      sourceAccountId: SUB_ACCOUNT_ID,
     }),
   });
   const data = await response.json();
+  const errMsg = data.description
+    || (Array.isArray(data.errors) ? data.errors.join('; ') : null)
+    || null;
   if (data.code !== '00') {
     console.log('Nomba raw response:', JSON.stringify(data, null, 2));
-    throw new Error(data.description || 'Transfer failed');
+    throw new Error(errMsg || 'Transfer failed');
   }
-  return { status: data.data.status, transactionId: data.data.transactionId };
+  return { status: data.data?.status, transactionId: data.data?.merchantTxRef || data.data?.transactionId };
 }
 
 export async function createVirtualAccount(studentName, studentId) {
