@@ -1,63 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
-import { Spinner } from "../components/Spinner";
 import { StatusBadge } from "../components/StatusBadge";
 import { getSession } from "../lib/auth";
 import { KEYS, read, write, type FeeRow, type Mandate } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
-import { createCheckoutOrder, createDirectDebitMandate, friendlyError } from "../services/nomba";
+import { friendlyError } from "../services/nomba";
 import { SecuredByNomba } from "../components/TestModeBanner";
-import { usePaymentPolling } from "../hooks/usePaymentPolling";
-import { downloadReceipt } from "../lib/receipt";
+import { readWallets, demoPayFee, demoCreateMandate, type DemoWallets } from "../lib/demoWallet";
+import { DemoPaymentModal, type DemoPaymentConfig } from "../components/DemoPaymentModal";
 
 export const Route = createFileRoute("/parent/fees")({ component: Page });
 
 function Page() {
   const session = getSession();
   const [rows, setRows] = useState<FeeRow[]>(() => read<FeeRow[]>(KEYS.fees, []));
-  const [paying, setPaying] = useState<string | null>(null);
   const [planFor, setPlanFor] = useState<FeeRow | null>(null);
+  const [payFor, setPayFor] = useState<FeeRow | null>(null);
 
   const refreshRows = useCallback(() => {
     setRows(read<FeeRow[]>(KEYS.fees, []));
   }, []);
 
-  const poll = usePaymentPolling(refreshRows);
-
-  useEffect(() => {
-    if (poll.state === "success") refreshRows();
-  }, [poll.state, refreshRows]);
-
-  async function payFull(f: FeeRow) {
-    const amount = f.amount - f.paid;
-    if (amount <= 0) return;
-    setPaying(f.id);
-    try {
-      const r = await createCheckoutOrder(
-        amount,
-        session?.email ?? "parent@termly.com",
-        session?.name ?? "Parent",
-      );
-      write(KEYS.pendingPayment, {
-        orderReference: r.orderReference,
-        feeId: f.id,
-        amount,
-        timestamp: Date.now(),
-      });
-      window.open(r.checkoutLink, "_blank");
-      poll.startPolling(r.orderReference, f.id, amount);
-    } catch (e) {
-      toast.error(friendlyError(e));
-    } finally {
-      setPaying(null);
-    }
+  function handleDemoPaySuccess(f: FeeRow, amount: number, ref: string) {
+    const fees = read<FeeRow[]>(KEYS.fees, []);
+    const next = fees.map((row) =>
+      row.id === f.id
+        ? { ...row, paid: row.paid + amount, status: "Paid" as FeeRow["status"] }
+        : row,
+    );
+    write(KEYS.fees, next);
+    const txs = read(KEYS.transactions, [] as any[]);
+    txs.unshift({
+      id: `tx_${Date.now()}`,
+      date: new Date().toISOString().slice(0, 10),
+      studentName: f.studentName,
+      fee: f.term,
+      amount,
+      method: "Bank Transfer",
+      status: "Paid",
+      reference: ref,
+    });
+    write(KEYS.transactions, txs);
+    refreshRows();
+    toast.success(`${fmtNaira(amount)} paid successfully!`);
   }
-
-  const mins = Math.floor(poll.secondsLeft / 60);
-  const secs = String(poll.secondsLeft % 60).padStart(2, "0");
-  const progress = poll.secondsLeft > 0 ? (poll.secondsLeft / 180) * 100 : 0;
 
   return (
     <>
@@ -66,81 +54,6 @@ function Page() {
         subtitle="View and pay your child's school fees."
         actions={<SecuredByNomba />}
       />
-
-      {poll.state === "polling" && (
-        <div className="mb-4 rounded-xl border border-info/40 bg-info-soft p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Spinner size={20} className="shrink-0 text-info" />
-            <div className="flex-1">
-              <p className="font-semibold text-info text-sm">Waiting for payment confirmation…</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Complete payment in the new tab · checking every few seconds · {mins}:{secs} left
-              </p>
-            </div>
-            <button
-              onClick={poll.cancel}
-              className="text-xs text-muted-foreground underline hover:text-foreground shrink-0"
-            >
-              Cancel
-            </button>
-          </div>
-          <div className="mt-3 h-1.5 w-full rounded-full bg-info/20 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-info transition-all duration-1000"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {poll.state === "success" && (
-        <div className="mb-4 rounded-xl border border-success/40 bg-success-soft px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success text-white text-lg">
-              ✓
-            </div>
-            <div className="flex-1 text-sm">
-              <span className="font-semibold text-success">Payment confirmed!</span>
-              <span className="ml-2 text-muted-foreground">
-                {fmtNaira(poll.amount)} · Ref: {poll.transactionRef}
-              </span>
-            </div>
-            <button
-              onClick={() =>
-                downloadReceipt({
-                  reference: poll.transactionRef,
-                  date: new Date(),
-                  studentName: poll.studentName,
-                  feeType: poll.feeType,
-                  amount: poll.amount,
-                  method: "Nomba Checkout",
-                })
-              }
-              className="inline-flex items-center gap-1.5 rounded-md bg-success px-3 py-1.5 text-xs font-semibold text-white hover:bg-success/90 shrink-0"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-              </svg>
-              Receipt
-            </button>
-            <button onClick={poll.cancel} className="text-xs text-muted-foreground underline hover:text-foreground">
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {poll.state === "timeout" && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 shadow-sm">
-          <div className="text-warning-foreground text-lg shrink-0">⏱</div>
-          <p className="flex-1 text-sm text-warning-foreground">
-            Payment is pending verification. If money was deducted, contact the school.
-          </p>
-          <button onClick={poll.cancel} className="text-xs text-muted-foreground underline hover:text-foreground">
-            Dismiss
-          </button>
-        </div>
-      )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
@@ -157,7 +70,7 @@ function Page() {
           </thead>
           <tbody className="divide-y divide-border">
             {rows.map((f) => (
-              <tr key={f.id} className={poll.state === "polling" ? "opacity-80" : ""}>
+              <tr key={f.id}>
                 <td className="px-5 py-3 font-medium">
                   {f.term}
                   <div className="text-xs text-muted-foreground">{f.studentName}</div>
@@ -167,27 +80,19 @@ function Page() {
                 <td className="px-5 py-3 text-warning-foreground">{fmtNaira(f.amount - f.paid)}</td>
                 <td className="px-5 py-3 text-muted-foreground">{fmtDate(f.dueDate)}</td>
                 <td className="px-5 py-3">
-                  {poll.state === "polling" && f.status !== "Paid" ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-info">
-                      <Spinner size={12} className="text-info" /> Verifying…
-                    </span>
-                  ) : (
-                    <StatusBadge status={f.status} />
-                  )}
+                  <StatusBadge status={f.status} />
                 </td>
                 <td className="px-5 py-3 text-right space-x-2">
                   {f.status !== "Paid" ? (
                     <>
                       <button
-                        onClick={() => payFull(f)}
-                        disabled={paying === f.id || poll.state === "polling"}
+                        onClick={() => setPayFor(f)}
                         className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                       >
-                        {paying === f.id ? "Connecting…" : "Pay Full"}
+                        Pay Full
                       </button>
                       <button
                         onClick={() => setPlanFor(f)}
-                        disabled={poll.state === "polling"}
                         className="rounded-md border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
                       >
                         Installments
@@ -218,7 +123,53 @@ function Page() {
           phoneDefault={session?.phone ?? ""}
         />
       )}
+
+      {payFor && (
+        <PayFullModal
+          fee={payFor}
+          onClose={() => setPayFor(null)}
+          onSuccess={(amount, ref) => handleDemoPaySuccess(payFor, amount, ref)}
+        />
+      )}
     </>
+  );
+}
+
+function PayFullModal({
+  fee,
+  onClose,
+  onSuccess,
+}: {
+  fee: FeeRow;
+  onClose: () => void;
+  onSuccess: (amount: number, ref: string) => void;
+}) {
+  const wallets = readWallets();
+  const amount = fee.amount - fee.paid;
+
+  const config: DemoPaymentConfig = {
+    headerEmoji: "🎓",
+    headerLabel: "PAY SCHOOL FEES (DEMO)",
+    fromName: wallets.parent.name,
+    fromBalance: wallets.parent.balance,
+    fromAccount: wallets.parent.accountNumber,
+    fromBank: wallets.parent.bank,
+    toLabel: "TO",
+    toName: wallets.school.name,
+    toAccount: wallets.school.accountNumber,
+    toBank: wallets.school.bank,
+    amount,
+    description: `${fee.term} - ${fee.studentName}`,
+    confirmLabel: "Pay Now",
+  };
+
+  return (
+    <DemoPaymentModal
+      config={config}
+      onConfirm={() => demoPayFee(amount)}
+      onSuccess={(ref) => onSuccess(amount, ref)}
+      onClose={onClose}
+    />
   );
 }
 
@@ -243,9 +194,8 @@ function PlanModal({
     if (!phone) return toast.error("Phone is required");
     setBusy(true);
     try {
-      const start = new Date();
-      start.setDate(start.getDate() + 1);
-      const r = await createDirectDebitMandate(monthly, start.toISOString().slice(0, 10), phone, email);
+      await new Promise((res) => setTimeout(res, 1200));
+      const r = demoCreateMandate();
       const mandates = read<Mandate[]>(KEYS.mandates, []);
       mandates.unshift({
         id: `m_${Date.now()}`,

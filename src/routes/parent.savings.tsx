@@ -6,9 +6,9 @@ import { getSession } from "../lib/auth";
 import { KEYS, read, write, type Mandate } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
-import { readWallets, demoTopUpSavings, type DemoWallets, DEFAULT_WALLETS } from "../lib/demoWallet";
+import { readWallets, demoTopUpSavings, demoCreateMandate, type DemoWallets, DEFAULT_WALLETS } from "../lib/demoWallet";
 import { DemoPaymentModal, type DemoPaymentConfig } from "../components/DemoPaymentModal";
-import { createDirectDebitMandate, friendlyError } from "../services/nomba";
+import { friendlyError } from "../services/nomba";
 import { burstConfetti } from "../lib/confetti";
 import {
   checkAndNotifySavingsThreshold,
@@ -410,9 +410,8 @@ function InstallmentPlanModal({
     if (!phone) return toast.error("Phone is required");
     setBusy(true);
     try {
-      const start = new Date();
-      start.setDate(start.getDate() + 1);
-      const r = await createDirectDebitMandate(monthly, start.toISOString().slice(0, 10), phone, email);
+      await new Promise((res) => setTimeout(res, 1200));
+      const r = demoCreateMandate();
       const mandates = read<Mandate[]>(KEYS.mandates, []);
       mandates.unshift({
         id: `sav_${Date.now()}`,

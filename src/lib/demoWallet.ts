@@ -138,3 +138,13 @@ export function demoPayBill(amount: number): string {
   writeWallets(w);
   return genRef("bill");
 }
+
+export function demoCreateMandate(): { mandateId: string; status: string; nextDebitDate: string } {
+  const start = new Date();
+  start.setDate(start.getDate() + 1);
+  return {
+    mandateId: `DEMO-MANDATE-${Math.floor(10000000 + Math.random() * 90000000)}`,
+    status: "active",
+    nextDebitDate: start.toISOString().slice(0, 10),
+  };
+}
