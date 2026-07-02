@@ -1,0 +1,193 @@
+Add a demo payment simulation feature to Termly that shows 
+money moving between accounts in real time, even when Nomba 
+live transfers are pending fixes.
+
+================================================================
+DEMO WALLET SYSTEM
+================================================================
+
+Create a simulated wallet system that shows real money movement 
+between Parent, Student, and School (Admin) accounts.
+
+Add to localStorage these demo accounts with balances:
+
+"termly_demo_wallets": {
+  "school": {
+    name: "Bimron Comprehensive School",
+    accountNumber: "0123456789",
+    bank: "Nomba Bank",
+    balance: 500000
+  },
+  "parent_demo": {
+    name: "Mr. James Okonkwo",
+    accountNumber: "9876543210", 
+    bank: "Access Bank",
+    balance: 150000
+  },
+  "student_demo": {
+    name: "Emeka Okonkwo",
+    admissionNumber: "TMLY/2026/001",
+    savingsBalance: 25000,
+    feeOwed: 45000
+  },
+  "teacher_demo": {
+    name: "Mr. Adewale Okafor",
+    accountNumber: "1122334455",
+    bank: "GTBank",
+    salary: 85000,
+    walletBalance: 0
+  }
+}
+
+================================================================
+DEMO PAYMENT FLOWS
+================================================================
+
+1. PARENT PAYS SCHOOL FEE (Demo Flow):
+
+On Parent dashboard "Pay Now" button:
+- Show a demo payment modal:
+  
+  ┌─────────────────────────────────┐
+  │  💳 NOMBA CHECKOUT (DEMO)       │
+  │                                 │
+  │  Paying: ₦45,000.00             │
+  │  For: Emeka Okonkwo             │
+  │  Term: First Term 2026/2027     │
+  │                                 │
+  │  FROM: Mr. James Okonkwo        │
+  │  Balance: ₦150,000.00           │
+  │  Account: 9876543210 (Access)   │
+  │                                 │
+  │  TO: Bimron Comprehensive       │
+  │  Account: 0123456789 (Nomba)    │
+  │                                 │
+  │  [Cancel]  [Confirm Payment]    │
+  └─────────────────────────────────┘
+
+- Show animated processing:
+  "Processing payment via Nomba..."
+  Progress bar filling over 3 seconds
+  
+- On complete show:
+  "✓ Payment Successful!"
+  Generate real-looking transaction reference: 
+  NMB/2026/[random 8 digits]
+  
+- Update wallets:
+  Parent balance: 150,000 - 45,000 = ₦105,000
+  School balance: 500,000 + 45,000 = ₦545,000
+  Fee status → PAID
+  
+- Add to transaction history with reference
+
+2. ADMIN DISBURSES SALARY (Demo Flow):
+
+On Payroll page "Disburse via Nomba" button:
+- Show demo disbursement modal:
+
+  ┌─────────────────────────────────┐
+  │  💸 NOMBA TRANSFER (DEMO)       │
+  │                                 │
+  │  Sending: ₦85,000.00            │
+  │  To: Mr. Adewale Okafor         │
+  │  Bank: GTBank                   │
+  │  Account: 1122334455            │
+  │                                 │
+  │  FROM: School Account           │
+  │  Balance: ₦545,000.00           │
+  │                                 │
+  │  [Cancel]  [Send Salary]        │
+  └─────────────────────────────────┘
+
+- Animated processing over 3 seconds
+- Update wallets:
+  School balance: 545,000 - 85,000 = ₦460,000
+  Teacher wallet: 0 + 85,000 = ₦85,000
+  Payroll status → PAID
+
+3. PARENT TOPS UP STUDENT SAVINGS (Demo Flow):
+
+On Parent Savings tab:
+- Show demo top up modal with same animation
+- Deduct from parent balance
+- Add to student savings balance
+- Show updated progress bar towards fee
+
+4. SCHOOL PAYS ELECTRICITY (Demo Flow):
+
+On Bills tab:
+- After meter verification
+- Show demo payment modal
+- Deduct from school balance
+- Show electricity token: 
+  "Token: 1234-5678-9012-3456-7890"
+
+================================================================
+LIVE WALLET DASHBOARD
+================================================================
+
+Add a "Demo Wallet" floating button (bottom right) on every page
+that shows current balances:
+
+┌─────────────────────────────────┐
+│  💰 DEMO WALLETS                │
+│                                 │
+│  🏫 School Account              │
+│  ₦500,000.00                    │
+│                                 │
+│  👨 Parent (James Okonkwo)      │
+│  ₦150,000.00                    │
+│                                 │
+│  👦 Student Savings             │
+│  ₦25,000.00                     │
+│                                 │
+│  👨‍🏫 Teacher (Adewale)          │
+│  ₦0.00                          │
+│                                 │
+│  [Reset Balances]               │
+└─────────────────────────────────┘
+
+This updates in real time as payments are made.
+
+================================================================
+TRANSACTION ANIMATION
+================================================================
+
+Every demo payment must show this sequence:
+1. Modal opens showing FROM and TO accounts (0.5s)
+2. "Connecting to Nomba..." spinner (1s)
+3. Progress bar fills: "Processing..." (2s)
+4. Green checkmark animation (0.5s)
+5. "✓ Transfer Complete!" with confetti (1s)
+6. Receipt generated automatically
+
+Total animation: ~5 seconds feels realistic
+
+================================================================
+DEMO TRANSACTION REFERENCES
+================================================================
+
+Generate realistic Nomba-style references:
+- Fee payment: NMB/TXN/2026/[8 random digits]
+- Salary transfer: NMB/TRF/2026/[8 random digits]  
+- Savings top-up: NMB/SAV/2026/[8 random digits]
+- Bill payment: NMB/BIL/2026/[8 random digits]
+
+================================================================
+DEMO MODE BANNER
+================================================================
+
+Update the yellow TEST MODE banner to say:
+"🟡 DEMO MODE — Payments simulated with real Nomba flow. 
+Switch to LIVE credentials for real transactions."
+
+================================================================
+RESET FEATURE
+================================================================
+
+Add a "Reset Demo" button in the wallet dashboard that:
+- Resets all balances to original amounts
+- Clears transaction history
+- Resets all fee statuses to unpaid
+- Useful for showing judges multiple times

@@ -1,7 +1,7 @@
 export function TestModeBanner() {
   return (
     <div className="sticky top-0 z-[100] w-full bg-yellow-300 px-4 py-1.5 text-center text-xs font-bold uppercase tracking-wider text-yellow-900 shadow">
-      ⚠ Test Mode — Termly is running in sandbox. Real money is not moved.
+      🟡 Demo Mode — Payments simulated with real Nomba flow. Switch to LIVE credentials for real transactions.
     </div>
   );
 }

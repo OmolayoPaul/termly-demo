@@ -1,0 +1,229 @@
+================================================================
+STUDENT SAVINGS WALLET DEMO FLOW
+================================================================
+
+Add complete demo payment flows for the Student Savings Wallet:
+
+1. PARENT TOPS UP STUDENT SAVINGS:
+
+On Parent Dashboard Savings tab, "Top Up Savings" button:
+
+Show this modal:
+┌─────────────────────────────────┐
+│  💰 TOP UP SAVINGS (DEMO)       │
+│                                 │
+│  Student: Emeka Okonkwo         │
+│  Current Savings: ₦25,000.00    │
+│  Fee Owed: ₦45,000.00           │
+│  Still Needed: ₦20,000.00       │
+│                                 │
+│  Quick amounts:                 │
+│  [₦5,000] [₦10,000] [₦20,000]  │
+│  Custom: [_______]              │
+│                                 │
+│  FROM: Mr. James Okonkwo        │
+│  Balance: ₦150,000.00           │
+│                                 │
+│  TO: Emeka Okonkwo Savings      │
+│  Account: [virtualAccountNo]    │
+│  Bank: [virtualAccountBank]     │
+│                                 │
+│  [Cancel]  [Save Money]         │
+└─────────────────────────────────┘
+
+Animation sequence:
+1. "Connecting to Nomba..." (1s)
+2. "Transferring to savings account..." (2s)
+3. "✓ ₦[amount] saved successfully!" (confetti)
+
+After payment:
+- Deduct from parent wallet balance
+- Add to student savings balance
+- Update savings progress bar instantly
+- Add to savings history:
+  { date, type: "Deposit", amount, 
+    balanceAfter, reference: "NMB/SAV/2026/[8digits]" }
+- Show new savings goal progress:
+  "₦35,000 of ₦45,000 saved — 78% ✓"
+
+2. SAVINGS GOAL REACHED ANIMATION:
+
+When savings balance reaches or exceeds fee amount:
+- Trigger confetti animation
+- Show green banner:
+  "🎉 Savings Goal Reached!"
+  "Emeka's First Term fee is fully covered!"
+  "Admin can now deduct fees from savings."
+- Update student record in localStorage
+
+3. ADMIN DEDUCTS FEE FROM SAVINGS:
+
+On Admin → Student Profile → Savings tab:
+"Deduct for Fees" button shows:
+
+┌─────────────────────────────────┐
+│  📚 DEDUCT FEE FROM SAVINGS     │
+│                                 │
+│  Student: Emeka Okonkwo         │
+│  Term: First Term 2026/2027     │
+│  Fee Amount: ₦45,000.00         │
+│  Savings Balance: ₦35,000.00    │
+│                                 │
+│  ⚠ Savings covers 78% of fee   │
+│  Remaining after deduction: ₦0  │
+│  Outstanding balance: ₦10,000   │
+│                                 │
+│  [Cancel]  [Deduct ₦35,000]     │
+└─────────────────────────────────┘
+
+Animation sequence:
+1. "Processing deduction..." (2s)
+2. "✓ ₦35,000 deducted from savings!"
+3. Fee status updates to "Partial" (yellow badge)
+4. Outstanding balance shows: ₦10,000 remaining
+
+Savings history records:
+{ date, type: "Fee Deduction", 
+  amount: -35000, balanceAfter: 0,
+  description: "First Term 2026/2027 fee payment",
+  reference: "NMB/DED/2026/[8digits]" }
+
+If savings fully covers fee:
+- Fee status → PAID (green badge)
+- Confetti animation
+- "✓ Fee fully paid from savings!"
+
+4. STUDENT SAVINGS SUMMARY ON ADMIN DASHBOARD:
+
+Add savings analytics cards:
+┌──────────────────────────────────────────┐
+│  STUDENT SAVINGS OVERVIEW                │
+│                                          │
+│  Total Savings: ₦25,000                  │
+│  Students Saving: 1 of 3                 │
+│  Students at Goal: 0 of 3               │
+│  Average Savings: ₦8,333                 │
+└──────────────────────────────────────────┘
+
+Savings leaderboard table:
+│ Student      │ Class │ Savings   │ Goal  │ % Done │
+│ Emeka Okonkwo│ SS2   │ ₦25,000  │₦45,000│  56%   │
+│ Amaka Eze    │ JSS3  │ ₦3,000   │₦35,000│   9%   │
+│ Tunde Adeyemi│ SS1   │ ₦0       │₦55,000│   0%   │
+
+Students needing savings attention (red section):
+- Students with zero savings and fee due within 30 days
+- Shows parent phone number for follow-up call
+
+5. PARENT SAVINGS HISTORY TABLE:
+
+On Parent Savings tab show full history:
+┌────────────────────────────────────────────────┐
+│ Date        │ Type     │ Amount  │ Balance │ Ref│
+│ 28 Jun 2026 │ Deposit  │+₦15,000 │₦25,000  │ .. │
+│ 15 Jun 2026 │ Deposit  │+₦10,000 │₦10,000  │ .. │
+│ 01 Jun 2026 │ Deposit  │+₦0      │₦0       │ .. │
+└────────────────────────────────────────────────┘
+
+Running balance column updates after each transaction.
+
+6. LOW SAVINGS WARNING:
+
+On Parent Dashboard if savings < 25% of fee:
+Show pulsing red warning card:
+"⚠️ Low Savings Alert"
+"Emeka's savings (₦5,000) won't cover the 
+upcoming fee of ₦45,000 due on 15 Sep 2026."
+"You need ₦40,000 more."
+[Top Up Now] button → opens top up modal directly
+
+On Parent Dashboard if savings between 25-75%:
+Show yellow warning card:
+"📊 Keep Saving!"
+"₦25,000 saved. ₦20,000 more to cover full fee."
+[Top Up Savings] button
+
+On Parent Dashboard if savings >= 100% of fee:
+Show green card:
+"✅ You're all set!"
+"Emeka's fee is fully covered by savings."
+"Admin will process the deduction before term starts."
+
+7. DEMO WALLET UPDATE FOR SAVINGS:
+
+Update the floating Demo Wallet dashboard to show:
+
+┌─────────────────────────────────┐
+│  💰 DEMO WALLETS                │
+│                                 │
+│  🏫 School Account              │
+│  ₦500,000.00                    │
+│                                 │
+│  👨 Parent (James Okonkwo)      │
+│  ₦150,000.00                    │
+│                                 │
+│  👦 Student Savings             │
+│  Emeka Okonkwo                  │
+│  ₦25,000.00 / ₦45,000.00 (56%) │
+│  ████████░░░░░░░ 56%            │
+│                                 │
+│  👨‍🏫 Teacher (Adewale)          │
+│  ₦0.00                          │
+│                                 │
+│  [Reset Balances]               │
+└─────────────────────────────────┘
+
+Progress bar color:
+- Red: 0-25%
+- Yellow: 25-75%  
+- Green: 75-100%
+- Gold pulse: 100% (goal reached)
+
+8. INSTALLMENT SAVINGS PLAN:
+
+On Parent Pay Fees tab add:
+"Save in Installments" button (different from Pay in Installments)
+
+This lets parent set up automatic monthly savings:
+- Select amount to save per month: ₦5,000 / ₦10,000 / Custom
+- Select start date
+- Shows: "You'll reach your ₦45,000 goal in [X] months"
+- Calls createDirectDebitMandate() for automatic monthly savings
+- On success: "✓ Auto-savings set up! ₦[amount] saved monthly"
+- Shows upcoming savings dates on Installments tab
+
+================================================================
+SAVINGS RECEIPT
+================================================================
+
+When savings deduction is applied to pay a fee, generate 
+a receipt showing:
+
+┌─────────────────────────────────┐
+│  [Termly Logo]                  │
+│  SAVINGS PAYMENT RECEIPT        │
+│  Every Term, On Time            │
+├─────────────────────────────────┤
+│  Receipt No: NMB/SAV/2026/xxxxx │
+│  Date: [DD MMM YYYY]            │
+├─────────────────────────────────┤
+│  STUDENT DETAILS                │
+│  Name: Emeka Okonkwo            │
+│  Admission: TMLY/2026/001       │
+│  Class: SS2                     │
+├─────────────────────────────────┤
+│  PAYMENT DETAILS                │
+│  Fee Type: First Term 2026/2027 │
+│  Total Fee: ₦45,000.00          │
+│  Paid from Savings: ₦35,000.00  │
+│  Outstanding: ₦10,000.00        │
+│  Status: PARTIAL ⚠              │
+├─────────────────────────────────┤
+│  Savings Account: [accountNo]   │
+│  Bank: [bankName]               │
+├─────────────────────────────────┤
+│  Powered by Nomba               │
+│  Computer generated receipt     │
+└─────────────────────────────────┘
+
+Download as PDF using jsPDF.
