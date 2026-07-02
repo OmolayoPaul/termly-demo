@@ -10,6 +10,11 @@ import { readWallets, demoTopUpSavings, type DemoWallets, DEFAULT_WALLETS } from
 import { DemoPaymentModal, type DemoPaymentConfig } from "../components/DemoPaymentModal";
 import { createDirectDebitMandate, friendlyError } from "../services/nomba";
 import { burstConfetti } from "../lib/confetti";
+import {
+  checkAndNotifySavingsThreshold,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from "../lib/notifications";
 
 export const Route = createFileRoute("/parent/savings")({ component: SavingsPage });
 
@@ -23,16 +28,44 @@ function SavingsPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [prevPct, setPrevPct] = useState(0);
 
-  const refresh = useCallback(() => setWallets(readWallets()), []);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default");
+
+  const refresh = useCallback(() => {
+    const w = readWallets();
+    setWallets(w);
+    checkAndNotifySavingsThreshold({
+      studentId: "TML/2024/001",
+      studentName: w.student.name,
+      balance: w.student.savingsBalance,
+      goal: w.student.feeOwed,
+    });
+  }, []);
 
   useEffect(() => {
     setMounted(true);
     const w = readWallets();
     setWallets(w);
     setPrevPct(w.student.feeOwed > 0 ? Math.round((w.student.savingsBalance / w.student.feeOwed) * 100) : 0);
+    setNotifPermission(getNotificationPermission());
+    checkAndNotifySavingsThreshold({
+      studentId: "TML/2024/001",
+      studentName: w.student.name,
+      balance: w.student.savingsBalance,
+      goal: w.student.feeOwed,
+    });
     window.addEventListener("termly:wallet:updated", refresh);
     return () => window.removeEventListener("termly:wallet:updated", refresh);
   }, [refresh]);
+
+  async function enableNotifications() {
+    const result = await requestNotificationPermission();
+    setNotifPermission(result);
+    if (result === "granted") {
+      toast.success("Notifications enabled! You'll be alerted on savings milestones.");
+    } else if (result === "denied") {
+      toast.error("Notifications blocked. You can enable them in your browser settings.");
+    }
+  }
 
   if (!mounted) return null;
 
@@ -57,6 +90,21 @@ function SavingsPage() {
         subtitle="Save towards your child's school fees, a little at a time."
         actions={<SecuredByNomba />}
       />
+
+      {notifPermission === "default" && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-info/40 bg-info-soft px-5 py-3 shadow-sm">
+          <div className="text-sm text-info">
+            🔔 Turn on notifications to get alerted when {student.name.split(" ")[0]}'s savings goal is reached or
+            running low.
+          </div>
+          <button
+            onClick={enableNotifications}
+            className="shrink-0 rounded-md bg-info px-4 py-2 text-xs font-semibold text-white hover:opacity-90"
+          >
+            Enable Notifications
+          </button>
+        </div>
+      )}
 
       {pct >= 100 && (
         <div className="mb-4 rounded-xl border border-success/40 bg-success-soft px-5 py-4 text-center shadow-sm">
