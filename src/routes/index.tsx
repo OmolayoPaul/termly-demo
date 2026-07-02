@@ -79,6 +79,7 @@ function LoginPage() {
             <option value="admin">Administrator</option>
             <option value="parent">Parent</option>
             <option value="teacher">Teacher</option>
+            <option value="student">Student</option>
           </select>
 
           <label className="mt-4 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">

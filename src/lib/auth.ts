@@ -1,6 +1,6 @@
 import { KEYS, read, write, type User } from "./storage";
 
-export type Role = "admin" | "teacher" | "parent";
+export type Role = "admin" | "teacher" | "parent" | "student";
 
 export type Session = {
   id: string;
@@ -27,6 +27,7 @@ export const demoCreds: Record<Role, { email: string; password: string; name: st
   admin: { email: "admin@termly.com", password: "Termly2026", name: "School Administrator" },
   parent: { email: "parent@termly.com", password: "Parent2026", name: "Mr. Chidi Okonkwo" },
   teacher: { email: "teacher@termly.com", password: "Teacher2026", name: "Mr. Adewale Okafor" },
+  student: { email: "student@termly.com", password: "Student2026", name: "Emeka Okonkwo" },
 };
 
 export function authenticate(email: string, password: string, role: Role): Session | null {
@@ -41,5 +42,8 @@ export function authenticate(email: string, password: string, role: Role): Sessi
 }
 
 export function dashboardPathFor(role: Role): string {
-  return role === "admin" ? "/admin/dashboard" : role === "parent" ? "/parent/dashboard" : "/teacher/dashboard";
+  if (role === "admin") return "/admin/dashboard";
+  if (role === "parent") return "/parent/dashboard";
+  if (role === "student") return "/student/dashboard";
+  return "/teacher/dashboard";
 }

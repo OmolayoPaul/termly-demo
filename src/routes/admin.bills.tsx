@@ -3,15 +3,46 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
-import {
-  fetchElectricityProviders, lookupElectricityCustomer, payElectricity,
-  fetchDataPlans, buyDataBundle, friendlyError,
-} from "../services/nomba";
 import { KEYS, read, write, type TxRow } from "../lib/storage";
 import { fmtNaira } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
+import { demoPayBill } from "../lib/demoWallet";
 
 export const Route = createFileRoute("/admin/bills")({ component: Page });
+
+const DEMO_PROVIDERS = [
+  { name: "AEDC (Abuja Electricity)", code: "AEDC" },
+  { name: "IKEDC (Ikeja Electric)", code: "IKEDC" },
+  { name: "EKEDC (Eko Electric)", code: "EKEDC" },
+  { name: "PHEDC (Port Harcourt Electric)", code: "PHEDC" },
+];
+
+const DEMO_DATA_PLANS: Record<string, { id: string; name: string; size: string; validity: string; amount: number }[]> = {
+  MTN: [
+    { id: "mtn-1gb", name: "1GB Daily", size: "1GB", validity: "1 day", amount: 350 },
+    { id: "mtn-3gb", name: "3GB Weekly", size: "3GB", validity: "7 days", amount: 1000 },
+    { id: "mtn-10gb", name: "10GB Monthly", size: "10GB", validity: "30 days", amount: 3000 },
+  ],
+  AIRTEL: [
+    { id: "airtel-1.5gb", name: "1.5GB Daily", size: "1.5GB", validity: "1 day", amount: 400 },
+    { id: "airtel-4gb", name: "4GB Weekly", size: "4GB", validity: "7 days", amount: 1200 },
+    { id: "airtel-11gb", name: "11GB Monthly", size: "11GB", validity: "30 days", amount: 3500 },
+  ],
+  GLO: [
+    { id: "glo-1.2gb", name: "1.2GB Daily", size: "1.2GB", validity: "1 day", amount: 300 },
+    { id: "glo-5.8gb", name: "5.8GB Weekly", size: "5.8GB", validity: "7 days", amount: 1500 },
+    { id: "glo-13gb", name: "13GB Monthly", size: "13GB", validity: "30 days", amount: 4000 },
+  ],
+  "9MOBILE": [
+    { id: "9m-1gb", name: "1GB Daily", size: "1GB", validity: "1 day", amount: 350 },
+    { id: "9m-4.5gb", name: "4.5GB Weekly", size: "4.5GB", validity: "7 days", amount: 1300 },
+    { id: "9m-11gb", name: "11GB Monthly", size: "11GB", validity: "30 days", amount: 3800 },
+  ],
+};
+
+function genToken(): string {
+  return Array.from({ length: 4 }, () => String(Math.floor(1000 + Math.random() * 9000))).join("-");
+}
 
 function Page() {
   const [tab, setTab] = useState<"electricity" | "data">("electricity");
@@ -28,7 +59,7 @@ function Page() {
 }
 
 function Electricity() {
-  const [providers, setProviders] = useState<{ name: string; code: string }[]>([]);
+  const providers = DEMO_PROVIDERS;
   const [provider, setProvider] = useState("");
   const [meter, setMeter] = useState("");
   const [customer, setCustomer] = useState("");
@@ -36,24 +67,24 @@ function Electricity() {
   const [busy, setBusy] = useState<"verify" | "pay" | null>(null);
   const [result, setResult] = useState<{ token: string; reference: string } | null>(null);
 
-  useEffect(() => { fetchElectricityProviders().then(setProviders).catch((e) => toast.error(friendlyError(e))); }, []);
-
   async function verify() {
     setBusy("verify");
-    try { const r = await lookupElectricityCustomer(provider, meter); setCustomer(r.customerName); toast.success("Meter verified"); }
-    catch (e) { toast.error(friendlyError(e)); } finally { setBusy(null); }
+    await new Promise((res) => setTimeout(res, 700));
+    setCustomer("Bimron Comprehensive School (Demo Customer)");
+    toast.success("Meter verified");
+    setBusy(null);
   }
 
   async function pay() {
     setBusy("pay");
-    try {
-      const amt = Number(amount);
-      const r = await payElectricity(provider, meter, amt, customer);
-      setResult({ token: r.token, reference: r.reference });
-      const txs = read<TxRow[]>(KEYS.transactions, []);
-      txs.unshift({ id: `tx_${Date.now()}`, date: new Date().toISOString(), studentName: customer, fee: "Electricity Bill", amount: amt, method: "Nomba Bills", reference: r.reference, status: "Paid" });
-      write(KEYS.transactions, txs);
-    } catch (e) { toast.error(friendlyError(e)); } finally { setBusy(null); }
+    await new Promise((res) => setTimeout(res, 900));
+    const amt = Number(amount);
+    const reference = demoPayBill(amt);
+    setResult({ token: genToken(), reference });
+    const txs = read<TxRow[]>(KEYS.transactions, []);
+    txs.unshift({ id: `tx_${Date.now()}`, date: new Date().toISOString(), studentName: customer, fee: "Electricity Bill", amount: amt, method: "Demo Wallet", reference, status: "Paid" });
+    write(KEYS.transactions, txs);
+    setBusy(null);
   }
 
   return (
@@ -91,26 +122,22 @@ function Data() {
   const networks = ["MTN", "AIRTEL", "GLO", "9MOBILE"];
   const [network, setNetwork] = useState("");
   const [phone, setPhone] = useState("");
-  const [plans, setPlans] = useState<{ id: string; name: string; size: string; validity: string; amount: number }[]>([]);
   const [buying, setBuying] = useState<string | null>(null);
   const [result, setResult] = useState<{ reference: string } | null>(null);
 
-  useEffect(() => {
-    if (!network) return;
-    fetchDataPlans(network).then(setPlans).catch((e) => toast.error(friendlyError(e)));
-  }, [network]);
+  const plans = network ? DEMO_DATA_PLANS[network] ?? [] : [];
 
   async function buy(planId: string, amount: number) {
     if (!phone) return toast.error("Enter phone number");
     setBuying(planId);
-    try {
-      const r = await buyDataBundle(network, phone, planId, amount);
-      setResult({ reference: r.reference });
-      const txs = read<TxRow[]>(KEYS.transactions, []);
-      txs.unshift({ id: `tx_${Date.now()}`, date: new Date().toISOString(), studentName: phone, fee: `${network} Data Bundle`, amount, method: "Nomba Bills", reference: r.reference, status: "Paid" });
-      write(KEYS.transactions, txs);
-      toast.success("Data bundle purchased");
-    } catch (e) { toast.error(friendlyError(e)); } finally { setBuying(null); }
+    await new Promise((res) => setTimeout(res, 800));
+    const reference = demoPayBill(amount);
+    setResult({ reference });
+    const txs = read<TxRow[]>(KEYS.transactions, []);
+    txs.unshift({ id: `tx_${Date.now()}`, date: new Date().toISOString(), studentName: phone, fee: `${network} Data Bundle`, amount, method: "Demo Wallet", reference, status: "Paid" });
+    write(KEYS.transactions, txs);
+    toast.success("Data bundle purchased");
+    setBuying(null);
   }
 
   return (

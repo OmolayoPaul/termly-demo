@@ -5,11 +5,21 @@ import { PageHeader, StatCard } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Spinner } from "../components/Spinner";
 import { KEYS, read, write, type PayrollRow } from "../lib/storage";
-import { fetchNigerianBanks, lookupBankAccount, transferToBank, friendlyError } from "../services/nomba";
 import { fmtNaira } from "../lib/format";
 import { burstConfetti } from "../lib/confetti";
+import { demoDisburseSalary } from "../lib/demoWallet";
 
 export const Route = createFileRoute("/admin/payroll")({ component: Page });
+
+const DEMO_BANKS = [
+  { name: "GTBank", code: "058" },
+  { name: "Access Bank", code: "044" },
+  { name: "Zenith Bank", code: "057" },
+  { name: "First Bank", code: "011" },
+  { name: "UBA", code: "033" },
+];
+
+const DEMO_ACCOUNT_NAMES = ["Mr. Adewale Okafor", "Mrs. Fatima Aliyu", "Mr. Emeka Chukwu"];
 
 function Page() {
   const [rows, setRows] = useState<PayrollRow[]>([]);
@@ -31,35 +41,31 @@ function Page() {
     setBankCode(r.bankCode ?? "");
     setAcct(r.accountNumber ?? "");
     setAcctName(r.accountName ?? "");
-    if (banks.length === 0) {
-      fetchNigerianBanks().then(setBanks).catch((e) => toast.error(friendlyError(e)));
-    }
+    if (banks.length === 0) setBanks(DEMO_BANKS);
   }
 
   async function verify() {
     if (!bankCode || acct.length < 10) return toast.error("Pick bank and enter 10-digit account.");
     setVerifying(true);
-    try {
-      const r = await lookupBankAccount(bankCode, acct);
-      setAcctName(r.accountName);
-      toast.success("Verified ✓");
-    } catch (e) { toast.error(friendlyError(e)); }
-    finally { setVerifying(false); }
+    await new Promise((res) => setTimeout(res, 700));
+    const name = target?.teacher ?? DEMO_ACCOUNT_NAMES[Math.floor(Math.random() * DEMO_ACCOUNT_NAMES.length)];
+    setAcctName(name);
+    toast.success("Verified ✓");
+    setVerifying(false);
   }
 
   async function send() {
     if (!target || !acctName) return;
     setSending(true);
-    try {
-      const r = await transferToBank(bankCode, acct, acctName, target.amount, `Salary - ${target.month}`);
-      const next = rows.map((x) => x.id === target.id ? { ...x, status: "Paid" as const, bankCode, accountNumber: acct, accountName: acctName, transactionId: r.transactionId, paidDate: new Date().toISOString() } : x);
-      setRows(next); write(KEYS.payroll, next);
-      const bank = banks.find((b) => b.code === bankCode);
-      setSuccess({ txId: r.transactionId, amount: target.amount, bank: bank?.name ?? "", acct });
-      burstConfetti();
-      setTarget(null);
-    } catch (e) { toast.error(friendlyError(e)); }
-    finally { setSending(false); }
+    await new Promise((res) => setTimeout(res, 900));
+    const reference = demoDisburseSalary(target.amount, target.teacher);
+    const next = rows.map((x) => x.id === target.id ? { ...x, status: "Paid" as const, bankCode, accountNumber: acct, accountName: acctName, transactionId: reference, paidDate: new Date().toISOString() } : x);
+    setRows(next); write(KEYS.payroll, next);
+    const bank = banks.find((b) => b.code === bankCode);
+    setSuccess({ txId: reference, amount: target.amount, bank: bank?.name ?? "", acct });
+    burstConfetti();
+    setTarget(null);
+    setSending(false);
   }
 
   function exportCsv() {

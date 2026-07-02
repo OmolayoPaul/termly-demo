@@ -33,7 +33,7 @@ export type User = {
   name: string;
   email: string;
   phone?: string;
-  role: "admin" | "parent" | "teacher";
+  role: "admin" | "parent" | "teacher" | "student";
   password: string;
   createdAt: string;
 };

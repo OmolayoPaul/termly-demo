@@ -5,9 +5,16 @@ import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
 import { getSession } from "../lib/auth";
 import { KEYS, read, write, type TeacherProfile } from "../lib/storage";
-import { fetchNigerianBanks, lookupBankAccount, friendlyError } from "../services/nomba";
 
 export const Route = createFileRoute("/teacher/profile")({ component: Page });
+
+const DEMO_BANKS = [
+  { name: "GTBank", code: "058" },
+  { name: "Access Bank", code: "044" },
+  { name: "Zenith Bank", code: "057" },
+  { name: "First Bank", code: "011" },
+  { name: "UBA", code: "033" },
+];
 
 function Page() {
   const session = getSession();
@@ -20,10 +27,8 @@ function Page() {
 
   useEffect(() => {
     setLoadingBanks(true);
-    fetchNigerianBanks()
-      .then(setBanks)
-      .catch((e) => toast.error(friendlyError(e)))
-      .finally(() => setLoadingBanks(false));
+    setBanks(DEMO_BANKS);
+    setLoadingBanks(false);
     const p = read<TeacherProfile | null>(KEYS.teacherProfile, null);
     if (p) {
       setBankCode(p.bankCode ?? "");
@@ -35,15 +40,10 @@ function Page() {
   async function verify() {
     if (!bankCode || accountNumber.length < 10) return toast.error("Enter a valid 10-digit account number.");
     setVerifying(true);
-    try {
-      const r = await lookupBankAccount(bankCode, accountNumber);
-      setAccountName(r.accountName);
-      toast.success("Account verified ✓");
-    } catch (e) {
-      toast.error(friendlyError(e));
-    } finally {
-      setVerifying(false);
-    }
+    await new Promise((res) => setTimeout(res, 700));
+    setAccountName(session?.name ?? "Verified Account Holder");
+    toast.success("Account verified ✓");
+    setVerifying(false);
   }
 
   function save() {

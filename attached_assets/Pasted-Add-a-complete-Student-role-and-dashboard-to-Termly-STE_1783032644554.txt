@@ -1,0 +1,109 @@
+Add a complete Student role and dashboard to Termly.
+
+STEP 1 — Add Student to login role selector:
+Current roles: Administrator, Parent, Teacher
+Add: Student
+Demo credentials:
+  student@termly.com / Student2026
+
+STEP 2 — Create Student Dashboard (/student/dashboard):
+
+Top navigation:
+- Dashboard
+- My Fees
+- My Savings
+- Transactions
+- Sign out
+
+DASHBOARD TAB:
+- Welcome: "Hello [studentName]"
+- Student info card:
+  * Name, Admission Number, Class badge
+  * Profile photo (initials avatar)
+- Fee status card:
+  * Current term fee amount
+  * Amount paid
+  * Outstanding balance
+  * Due date with countdown:
+    "15 days until next payment"
+  * Status badge (Paid/Partial/Unpaid)
+- Savings wallet card:
+  * Current savings balance (large)
+  * Progress bar towards fee goal
+  * Virtual account number and bank
+  * "Show my parents this account" button
+    (displays QR-style card with account details
+    parents can screenshot to make transfers)
+- Recent transactions (last 5)
+
+MY FEES TAB:
+- All fee records for this student
+- Each fee: term, amount, paid, balance, 
+  due date, status
+- Payment history per fee
+- Download receipt button per paid fee
+
+MY SAVINGS TAB:
+- Large savings balance display
+- Progress bar towards fee goal
+- Color coded: red <25%, yellow 25-75%, green >75%
+- Savings goal card:
+  * Fee amount: ₦45,000
+  * Saved so far: ₦25,000
+  * Still needed: ₦20,000
+  * Projected goal date based on savings rate
+- "Share My Savings Account" card:
+  Shows virtual account details formatted 
+  as a payment card:
+  ┌─────────────────────────────┐
+  │  TERMLY SAVINGS ACCOUNT     │
+  │  Emeka Okonkwo              │
+  │  Account: 0123456789        │
+  │  Bank: Nomba Bank           │
+  │  "Transfer here to save"    │
+  └─────────────────────────────┘
+  Copy button and Share button
+- Savings history table:
+  Date, Type, Amount, Balance, Reference
+
+TRANSACTIONS TAB:
+- All payment transactions for this student
+- Filter by type and date
+- Download receipt per transaction
+
+STEP 3 — Demo Credentials for Student:
+Add to demo accounts:
+  email: student@termly.com
+  password: Student2026
+  role: student
+  name: Emeka Okonkwo
+  admissionNumber: TMLY/2026/001
+  class: SS2
+  feeOwed: 45000
+  savingsBalance: 25000
+  virtualAccount:
+    accountNumber: "0123456789"
+    bankName: "Nomba Bank"
+
+STEP 4 — Protect student routes:
+Only users with role === "student" can access 
+/student/* routes.
+On every student page load check localStorage 
+"termly_current_user" role.
+If not student → redirect to /login.
+
+STEP 5 — Update Demo Wallet Panel:
+When logged in as student show their own 
+wallet panel:
+┌─────────────────────────────────┐
+│  👦 MY SAVINGS WALLET           │
+│  Emeka Okonkwo                  │
+│                                 │
+│  Savings: ₦25,000.00            │
+│  Fee Owed: ₦45,000.00           │
+│  ████████░░░░░░░ 56%            │
+│                                 │
+│  Virtual Account:               │
+│  0123456789 (Nomba Bank)        │
+│  "Share with parents"           │
+└─────────────────────────────────┘

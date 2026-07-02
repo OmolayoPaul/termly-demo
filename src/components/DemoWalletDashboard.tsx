@@ -3,6 +3,7 @@ import { readWallets, resetWallets, DEFAULT_WALLETS, type DemoWallets } from "..
 import { fmtNaira } from "../lib/format";
 import { KEYS, read, write, type FeeRow, type PayrollRow, type Student } from "../lib/storage";
 import { students as seedStudents, fees as seedFees, payroll as seedPayroll } from "../lib/seed";
+import { getSession } from "../lib/auth";
 
 export function DemoWalletDashboard() {
   const [mounted, setMounted] = useState(false);
@@ -19,6 +20,8 @@ export function DemoWalletDashboard() {
   }, [refresh]);
 
   if (!mounted) return null;
+
+  const isStudent = getSession()?.role === "student";
 
   const { student } = wallets;
   const pct = student.feeOwed > 0
@@ -70,6 +73,27 @@ export function DemoWalletDashboard() {
           </div>
 
           <div className="divide-y divide-border">
+            {isStudent && (
+              <div className="bg-primary/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎒</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold">My Savings Wallet</div>
+                    <div className="text-xs text-muted-foreground">{student.admissionNumber}</div>
+                  </div>
+                  <div className="text-sm font-semibold">{fmtNaira(student.savingsBalance)}</div>
+                </div>
+                <div className="mt-1.5 text-xs text-muted-foreground">
+                  {fmtNaira(student.savingsBalance)} / {fmtNaira(student.feeOwed)} ({pct}%)
+                </div>
+                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${barColor} ${pct >= 100 ? "animate-pulse" : ""}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <WRow emoji="🏫" label="School Account" value={fmtNaira(wallets.school.balance)} />
             <WRow
               emoji="👨"
@@ -77,25 +101,27 @@ export function DemoWalletDashboard() {
               value={fmtNaira(wallets.parent.balance)}
             />
 
-            <div className="px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">👦</span>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">Student Savings</div>
-                  <div className="text-xs text-muted-foreground">{student.name}</div>
+            {!isStudent && (
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">👦</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Student Savings</div>
+                    <div className="text-xs text-muted-foreground">{student.name}</div>
+                  </div>
+                  <div className="text-sm font-semibold">{fmtNaira(student.savingsBalance)}</div>
                 </div>
-                <div className="text-sm font-semibold">{fmtNaira(student.savingsBalance)}</div>
+                <div className="mt-1.5 text-xs text-muted-foreground">
+                  {fmtNaira(student.savingsBalance)} / {fmtNaira(student.feeOwed)} ({pct}%)
+                </div>
+                <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${barColor} ${pct >= 100 ? "animate-pulse" : ""}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
               </div>
-              <div className="mt-1.5 text-xs text-muted-foreground">
-                {fmtNaira(student.savingsBalance)} / {fmtNaira(student.feeOwed)} ({pct}%)
-              </div>
-              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${barColor} ${pct >= 100 ? "animate-pulse" : ""}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
+            )}
 
             <WRow
               emoji="👨‍🏫"

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeacherRouteImport } from './routes/teacher'
+import { Route as StudentRouteImport } from './routes/student'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ParentRouteImport } from './routes/parent'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -20,6 +21,10 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TeacherSalaryRouteImport } from './routes/teacher.salary'
 import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherDashboardRouteImport } from './routes/teacher.dashboard'
+import { Route as StudentTransactionsRouteImport } from './routes/student.transactions'
+import { Route as StudentSavingsRouteImport } from './routes/student.savings'
+import { Route as StudentFeesRouteImport } from './routes/student.fees'
+import { Route as StudentDashboardRouteImport } from './routes/student.dashboard'
 import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as ParentTransactionsRouteImport } from './routes/parent.transactions'
 import { Route as ParentSavingsRouteImport } from './routes/parent.savings'
@@ -38,6 +43,11 @@ import { Route as AdminBillsRouteImport } from './routes/admin.bills'
 const TeacherRoute = TeacherRouteImport.update({
   id: '/teacher',
   path: '/teacher',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudentRoute = StudentRouteImport.update({
+  id: '/student',
+  path: '/student',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -89,6 +99,26 @@ const TeacherDashboardRoute = TeacherDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => TeacherRoute,
+} as any)
+const StudentTransactionsRoute = StudentTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentSavingsRoute = StudentSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentFeesRoute = StudentFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentDashboardRoute = StudentDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => StudentRoute,
 } as any)
 const PaymentCallbackRoute = PaymentCallbackRouteImport.update({
   id: '/payment/callback',
@@ -166,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/parent': typeof ParentRouteWithChildren
   '/signup': typeof SignupRoute
+  '/student': typeof StudentRouteWithChildren
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/bills': typeof AdminBillsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -181,6 +212,10 @@ export interface FileRoutesByFullPath {
   '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/student/dashboard': typeof StudentDashboardRoute
+  '/student/fees': typeof StudentFeesRoute
+  '/student/savings': typeof StudentSavingsRoute
+  '/student/transactions': typeof StudentTransactionsRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
@@ -191,6 +226,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/signup': typeof SignupRoute
+  '/student': typeof StudentRouteWithChildren
   '/admin/bills': typeof AdminBillsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/fees': typeof AdminFeesRoute
@@ -205,6 +241,10 @@ export interface FileRoutesByTo {
   '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/student/dashboard': typeof StudentDashboardRoute
+  '/student/fees': typeof StudentFeesRoute
+  '/student/savings': typeof StudentSavingsRoute
+  '/student/transactions': typeof StudentTransactionsRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
@@ -218,6 +258,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/parent': typeof ParentRouteWithChildren
   '/signup': typeof SignupRoute
+  '/student': typeof StudentRouteWithChildren
   '/teacher': typeof TeacherRouteWithChildren
   '/admin/bills': typeof AdminBillsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -233,6 +274,10 @@ export interface FileRoutesById {
   '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
+  '/student/dashboard': typeof StudentDashboardRoute
+  '/student/fees': typeof StudentFeesRoute
+  '/student/savings': typeof StudentSavingsRoute
+  '/student/transactions': typeof StudentTransactionsRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
   '/teacher/profile': typeof TeacherProfileRoute
   '/teacher/salary': typeof TeacherSalaryRoute
@@ -247,6 +292,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/parent'
     | '/signup'
+    | '/student'
     | '/teacher'
     | '/admin/bills'
     | '/admin/dashboard'
@@ -262,6 +308,10 @@ export interface FileRouteTypes {
     | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
+    | '/student/dashboard'
+    | '/student/fees'
+    | '/student/savings'
+    | '/student/transactions'
     | '/teacher/dashboard'
     | '/teacher/profile'
     | '/teacher/salary'
@@ -272,6 +322,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/signup'
+    | '/student'
     | '/admin/bills'
     | '/admin/dashboard'
     | '/admin/fees'
@@ -286,6 +337,10 @@ export interface FileRouteTypes {
     | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
+    | '/student/dashboard'
+    | '/student/fees'
+    | '/student/savings'
+    | '/student/transactions'
     | '/teacher/dashboard'
     | '/teacher/profile'
     | '/teacher/salary'
@@ -298,6 +353,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/parent'
     | '/signup'
+    | '/student'
     | '/teacher'
     | '/admin/bills'
     | '/admin/dashboard'
@@ -313,6 +369,10 @@ export interface FileRouteTypes {
     | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
+    | '/student/dashboard'
+    | '/student/fees'
+    | '/student/savings'
+    | '/student/transactions'
     | '/teacher/dashboard'
     | '/teacher/profile'
     | '/teacher/salary'
@@ -326,6 +386,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   ParentRoute: typeof ParentRouteWithChildren
   SignupRoute: typeof SignupRoute
+  StudentRoute: typeof StudentRouteWithChildren
   TeacherRoute: typeof TeacherRouteWithChildren
   PaymentCallbackRoute: typeof PaymentCallbackRoute
 }
@@ -337,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/teacher'
       fullPath: '/teacher'
       preLoaderRoute: typeof TeacherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/student': {
+      id: '/student'
+      path: '/student'
+      fullPath: '/student'
+      preLoaderRoute: typeof StudentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -408,6 +476,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/teacher/dashboard'
       preLoaderRoute: typeof TeacherDashboardRouteImport
       parentRoute: typeof TeacherRoute
+    }
+    '/student/transactions': {
+      id: '/student/transactions'
+      path: '/transactions'
+      fullPath: '/student/transactions'
+      preLoaderRoute: typeof StudentTransactionsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/savings': {
+      id: '/student/savings'
+      path: '/savings'
+      fullPath: '/student/savings'
+      preLoaderRoute: typeof StudentSavingsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/fees': {
+      id: '/student/fees'
+      path: '/fees'
+      fullPath: '/student/fees'
+      preLoaderRoute: typeof StudentFeesRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/dashboard': {
+      id: '/student/dashboard'
+      path: '/dashboard'
+      fullPath: '/student/dashboard'
+      preLoaderRoute: typeof StudentDashboardRouteImport
+      parentRoute: typeof StudentRoute
     }
     '/payment/callback': {
       id: '/payment/callback'
@@ -557,6 +653,23 @@ const ParentRouteChildren: ParentRouteChildren = {
 const ParentRouteWithChildren =
   ParentRoute._addFileChildren(ParentRouteChildren)
 
+interface StudentRouteChildren {
+  StudentDashboardRoute: typeof StudentDashboardRoute
+  StudentFeesRoute: typeof StudentFeesRoute
+  StudentSavingsRoute: typeof StudentSavingsRoute
+  StudentTransactionsRoute: typeof StudentTransactionsRoute
+}
+
+const StudentRouteChildren: StudentRouteChildren = {
+  StudentDashboardRoute: StudentDashboardRoute,
+  StudentFeesRoute: StudentFeesRoute,
+  StudentSavingsRoute: StudentSavingsRoute,
+  StudentTransactionsRoute: StudentTransactionsRoute,
+}
+
+const StudentRouteWithChildren =
+  StudentRoute._addFileChildren(StudentRouteChildren)
+
 interface TeacherRouteChildren {
   TeacherDashboardRoute: typeof TeacherDashboardRoute
   TeacherProfileRoute: typeof TeacherProfileRoute
@@ -579,6 +692,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   ParentRoute: ParentRouteWithChildren,
   SignupRoute: SignupRoute,
+  StudentRoute: StudentRouteWithChildren,
   TeacherRoute: TeacherRouteWithChildren,
   PaymentCallbackRoute: PaymentCallbackRoute,
 }
