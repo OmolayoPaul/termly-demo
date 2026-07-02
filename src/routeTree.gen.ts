@@ -22,6 +22,7 @@ import { Route as TeacherProfileRouteImport } from './routes/teacher.profile'
 import { Route as TeacherDashboardRouteImport } from './routes/teacher.dashboard'
 import { Route as PaymentCallbackRouteImport } from './routes/payment.callback'
 import { Route as ParentTransactionsRouteImport } from './routes/parent.transactions'
+import { Route as ParentSavingsRouteImport } from './routes/parent.savings'
 import { Route as ParentInstallmentsRouteImport } from './routes/parent.installments'
 import { Route as ParentFeesRouteImport } from './routes/parent.fees'
 import { Route as ParentDashboardRouteImport } from './routes/parent.dashboard'
@@ -99,6 +100,11 @@ const ParentTransactionsRoute = ParentTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => ParentRoute,
 } as any)
+const ParentSavingsRoute = ParentSavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => ParentRoute,
+} as any)
 const ParentInstallmentsRoute = ParentInstallmentsRouteImport.update({
   id: '/installments',
   path: '/installments',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
+  '/parent/savings': typeof ParentSavingsRoute
   '/parent/transactions': typeof ParentTransactionsRoute
   '/payment/callback': typeof PaymentCallbackRoute
   '/teacher/dashboard': typeof TeacherDashboardRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
+    | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
     | '/teacher/dashboard'
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
+    | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
     | '/teacher/dashboard'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
+    | '/parent/savings'
     | '/parent/transactions'
     | '/payment/callback'
     | '/teacher/dashboard'
@@ -411,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentTransactionsRouteImport
       parentRoute: typeof ParentRoute
     }
+    '/parent/savings': {
+      id: '/parent/savings'
+      path: '/savings'
+      fullPath: '/parent/savings'
+      preLoaderRoute: typeof ParentSavingsRouteImport
+      parentRoute: typeof ParentRoute
+    }
     '/parent/installments': {
       id: '/parent/installments'
       path: '/installments'
@@ -521,6 +540,7 @@ interface ParentRouteChildren {
   ParentDashboardRoute: typeof ParentDashboardRoute
   ParentFeesRoute: typeof ParentFeesRoute
   ParentInstallmentsRoute: typeof ParentInstallmentsRoute
+  ParentSavingsRoute: typeof ParentSavingsRoute
   ParentTransactionsRoute: typeof ParentTransactionsRoute
   ParentIndexRoute: typeof ParentIndexRoute
 }
@@ -529,6 +549,7 @@ const ParentRouteChildren: ParentRouteChildren = {
   ParentDashboardRoute: ParentDashboardRoute,
   ParentFeesRoute: ParentFeesRoute,
   ParentInstallmentsRoute: ParentInstallmentsRoute,
+  ParentSavingsRoute: ParentSavingsRoute,
   ParentTransactionsRoute: ParentTransactionsRoute,
   ParentIndexRoute: ParentIndexRoute,
 }

@@ -7,6 +7,7 @@ export const Route = createFileRoute("/parent")({ component: ParentLayout });
 const nav: { to: string; label: string; exact?: boolean }[] = [
   { to: "/parent/dashboard", label: "Dashboard" },
   { to: "/parent/fees", label: "Pay Fees" },
+  { to: "/parent/savings", label: "Savings" },
   { to: "/parent/installments", label: "Installments" },
   { to: "/parent/transactions", label: "Transactions" },
 ];

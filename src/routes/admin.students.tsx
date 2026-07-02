@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
-import { KEYS, read, write, type Student, type User } from "../lib/storage";
+import { KEYS, read, write, type Student, type User, type FeeRow } from "../lib/storage";
 import { createVirtualAccount, friendlyError } from "../services/nomba";
+import { fmtNaira, fmtDate } from "../lib/format";
+import { burstConfetti } from "../lib/confetti";
+import { getSavingsFor, deductStudentSavingsForFee } from "../lib/studentSavings";
+import { downloadSavingsReceipt } from "../lib/receipt";
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
 
@@ -140,9 +144,194 @@ function StudentsPage() {
               </div>
             )}
           </div>
+          <StudentSavingsPanel student={view} />
         </Modal>
       )}
     </>
+  );
+}
+
+function StudentSavingsPanel({ student }: { student: Student }) {
+  const [sav, setSav] = useState(() => getSavingsFor(student.id));
+  const [deductOpen, setDeductOpen] = useState(false);
+
+  const refresh = useCallback(() => setSav(getSavingsFor(student.id)), [student.id]);
+
+  useEffect(() => {
+    refresh();
+    window.addEventListener("termly:savings:updated", refresh);
+    return () => window.removeEventListener("termly:savings:updated", refresh);
+  }, [refresh]);
+
+  const fees = read<FeeRow[]>(KEYS.fees, []);
+  const primaryFee = fees.find((f) => f.studentId === student.id && f.amount > f.paid) ?? fees.find((f) => f.studentId === student.id);
+  const feeAmount = primaryFee ? primaryFee.amount - primaryFee.paid : sav.goal;
+  const pct = sav.goal > 0 ? Math.min(100, Math.round((sav.savingsBalance / sav.goal) * 100)) : 0;
+
+  return (
+    <div className="mt-4 rounded-md border border-border bg-secondary/30 p-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase text-muted-foreground">Savings</div>
+        <div className="text-xs text-muted-foreground">{pct}% of goal</div>
+      </div>
+      <div className="mt-1 text-lg font-bold">
+        {fmtNaira(sav.savingsBalance)} <span className="text-xs font-normal text-muted-foreground">/ {fmtNaira(sav.goal)}</span>
+      </div>
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-secondary">
+        <div
+          className={`h-full rounded-full ${pct >= 100 ? "bg-yellow-400" : pct >= 75 ? "bg-success" : pct >= 25 ? "bg-warning" : "bg-red-500"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {feeAmount > 0 && (
+        <button
+          onClick={() => setDeductOpen(true)}
+          disabled={sav.savingsBalance <= 0}
+          className="mt-3 w-full rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          Deduct for Fees
+        </button>
+      )}
+      {deductOpen && (
+        <DeductModal
+          student={student}
+          feeRow={primaryFee}
+          feeAmount={feeAmount}
+          savingsBalance={sav.savingsBalance}
+          onClose={() => setDeductOpen(false)}
+          onDone={refresh}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeductModal({
+  student,
+  feeRow,
+  feeAmount,
+  savingsBalance,
+  onClose,
+  onDone,
+}: {
+  student: Student;
+  feeRow?: FeeRow;
+  feeAmount: number;
+  savingsBalance: number;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [stage, setStage] = useState<"preview" | "processing" | "done">("preview");
+  const [result, setResult] = useState<{ reference: string; deducted: number; outstanding: number } | null>(null);
+  const coverPct = feeAmount > 0 ? Math.min(100, Math.round((savingsBalance / feeAmount) * 100)) : 0;
+  const remainingAfter = Math.max(0, feeAmount - savingsBalance);
+
+  async function confirmDeduct() {
+    setStage("processing");
+    await new Promise((r) => setTimeout(r, 1600));
+    const term = feeRow?.term ?? "First Term 2026/2027";
+    const r = deductStudentSavingsForFee(student.id, feeAmount, `${term} fee payment`);
+    if (feeRow) {
+      const fees = read<FeeRow[]>(KEYS.fees, []);
+      const next = fees.map((f) =>
+        f.id === feeRow.id
+          ? {
+              ...f,
+              paid: f.paid + r.deducted,
+              status: (r.outstanding <= 0 ? "Paid" : "Partial") as FeeRow["status"],
+            }
+          : f,
+      );
+      write(KEYS.fees, next);
+    }
+    setResult(r);
+    setStage("done");
+    if (r.outstanding <= 0) setTimeout(() => burstConfetti(), 100);
+    onDone();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-foreground/70 p-4" onClick={stage !== "processing" ? onClose : undefined}>
+      <div className="w-full max-w-sm rounded-2xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-primary px-5 py-4 text-primary-foreground">
+          <div className="text-sm font-bold tracking-wide">📚 DEDUCT FEE FROM SAVINGS</div>
+        </div>
+
+        {stage === "preview" && (
+          <div className="px-5 py-4 text-sm">
+            <div className="space-y-1">
+              <div><span className="text-muted-foreground">Student:</span> {student.name}</div>
+              <div><span className="text-muted-foreground">Fee Amount:</span> {fmtNaira(feeAmount)}</div>
+              <div><span className="text-muted-foreground">Savings Balance:</span> {fmtNaira(savingsBalance)}</div>
+            </div>
+            <div className="mt-3 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
+              ⚠ Savings covers {coverPct}% of fee
+              <div className="mt-1">Remaining after deduction: {fmtNaira(Math.max(0, savingsBalance - feeAmount))}</div>
+              <div>Outstanding balance: {fmtNaira(remainingAfter)}</div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button onClick={onClose} className="flex-1 rounded-md border border-border py-2.5 text-sm font-medium hover:bg-secondary">
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeduct}
+                className="flex-1 rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                Deduct {fmtNaira(Math.min(feeAmount, savingsBalance))}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {stage === "processing" && (
+          <div className="flex flex-col items-center justify-center gap-3 px-5 py-14">
+            <Spinner size={40} />
+            <div className="text-sm font-semibold">Processing deduction...</div>
+          </div>
+        )}
+
+        {stage === "done" && result && (
+          <div className="px-5 py-8 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-success text-2xl text-white">
+              ✓
+            </div>
+            <div className="text-lg font-bold text-success">{fmtNaira(result.deducted)} deducted from savings!</div>
+            {result.outstanding > 0 ? (
+              <p className="mt-1 text-sm text-warning-foreground">
+                Fee status: Partial · Outstanding: {fmtNaira(result.outstanding)}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-success">✓ Fee fully paid from savings!</p>
+            )}
+            <div className="mt-3 break-all rounded-md bg-secondary px-3 py-2 font-mono text-xs text-muted-foreground">
+              {result.reference}
+            </div>
+            <button
+              onClick={() =>
+                downloadSavingsReceipt({
+                  reference: result.reference,
+                  date: new Date(),
+                  studentName: student.name,
+                  admissionNumber: student.id,
+                  studentClass: student.class,
+                  feeType: feeRow?.term ?? "First Term 2026/2027",
+                  totalFee: feeAmount,
+                  paidFromSavings: result.deducted,
+                  outstanding: result.outstanding,
+                  status: result.outstanding <= 0 ? "PAID" : "PARTIAL",
+                })
+              }
+              className="mt-4 w-full rounded-md border border-border py-2.5 text-sm font-semibold hover:bg-secondary"
+            >
+              Download Receipt
+            </button>
+            <button onClick={onClose} className="mt-2 w-full rounded-md bg-success py-2.5 text-sm font-semibold text-white hover:opacity-90">
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

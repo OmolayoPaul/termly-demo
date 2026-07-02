@@ -1,4 +1,7 @@
+import { topUpStudentSavings, deductStudentSavingsForFee } from "./studentSavings";
+
 const WALLET_KEY = "termly_demo_wallets";
+const EMEKA_ID = "TML/2024/001";
 
 export interface SavingsEntry {
   date: string;
@@ -106,6 +109,7 @@ export function demoTopUpSavings(amount: number): string {
     reference: ref,
   });
   writeWallets(w);
+  topUpStudentSavings(EMEKA_ID, amount, w.student.feeOwed);
   return ref;
 }
 
@@ -124,6 +128,7 @@ export function demoDeductSavings(amount: number): { ref: string; deducted: numb
     description: "First Term 2026/2027 fee payment",
   });
   writeWallets(w);
+  deductStudentSavingsForFee(EMEKA_ID, deducted, "First Term 2026/2027 fee payment");
   return { ref, deducted, outstanding: amount - deducted };
 }
 
