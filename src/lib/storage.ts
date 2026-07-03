@@ -36,6 +36,7 @@ export type User = {
   role: "admin" | "parent" | "teacher" | "student";
   password: string;
   createdAt: string;
+  studentId?: string;
 };
 
 export type Student = {

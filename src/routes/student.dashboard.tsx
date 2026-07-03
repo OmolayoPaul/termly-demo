@@ -2,47 +2,58 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader, StatCard } from "../components/PageHeader";
 import { getSession } from "../lib/auth";
-import { KEYS, read, type FeeRow, type TxRow } from "../lib/storage";
 import { fmtNaira } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
-import { readWallets, DEFAULT_WALLETS, type DemoWallets } from "../lib/demoWallet";
+import { getStudentPortalData, type StudentPortalData } from "../lib/studentPortal";
 
 export const Route = createFileRoute("/student/dashboard")({ component: StudentDash });
 
 function StudentDash() {
   const session = getSession();
-  const [wallets, setWallets] = useState<DemoWallets>(DEFAULT_WALLETS);
+  const [data, setData] = useState<StudentPortalData | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const refresh = useCallback(() => setWallets(readWallets()), []);
+  const refresh = useCallback(() => setData(getStudentPortalData(session?.studentId, session?.name)), [session?.studentId, session?.name]);
 
   useEffect(() => {
     setMounted(true);
-    setWallets(readWallets());
+    refresh();
     window.addEventListener("termly:wallet:updated", refresh);
-    return () => window.removeEventListener("termly:wallet:updated", refresh);
+    window.addEventListener("termly:savings:updated", refresh);
+    return () => {
+      window.removeEventListener("termly:wallet:updated", refresh);
+      window.removeEventListener("termly:savings:updated", refresh);
+    };
   }, [refresh]);
 
   if (!mounted) return null;
 
-  const { student } = wallets;
-  const fees = read<FeeRow[]>(KEYS.fees, []).filter((f) => f.studentName === student.name);
-  const owed = fees.reduce((s, f) => s + (f.amount - f.paid), 0);
-  const txs = read<TxRow[]>(KEYS.transactions, []).filter((t) => t.studentName === student.name);
-  const pct = student.feeOwed > 0 ? Math.min(100, Math.round((student.savingsBalance / student.feeOwed) * 100)) : 0;
+  if (!data) {
+    return (
+      <>
+        <PageHeader title={`Hi ${(session?.name ?? "there").split(" ")[0]} 👋`} subtitle="Welcome to your Termly dashboard" />
+        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          No student record found for your account yet. Please contact your school administrator.
+        </div>
+      </>
+    );
+  }
+
+  const { student, outstandingFees, savingsBalance, savingsGoal, transactions } = data;
+  const pct = savingsGoal > 0 ? Math.min(100, Math.round((savingsBalance / savingsGoal) * 100)) : 0;
 
   return (
     <>
       <PageHeader
         title={`Hi ${(session?.name ?? student.name).split(" ")[0]} 👋`}
-        subtitle={`${student.admissionNumber} · Welcome to your Termly dashboard`}
+        subtitle={`${student.id} · Welcome to your Termly dashboard`}
         actions={<SecuredByNomba />}
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Outstanding Fees" value={fmtNaira(owed)} tone={owed > 0 ? "warning" : "success"} />
-        <StatCard label="My Savings" value={fmtNaira(student.savingsBalance)} sub={`${pct}% of fee goal`} tone="success" />
-        <StatCard label="Recent Transactions" value={txs.length} />
+        <StatCard label="Outstanding Fees" value={fmtNaira(outstandingFees)} tone={outstandingFees > 0 ? "warning" : "success"} />
+        <StatCard label="My Savings" value={fmtNaira(savingsBalance)} sub={`${pct}% of fee goal`} tone="success" />
+        <StatCard label="Recent Transactions" value={transactions.length} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">

@@ -7,23 +7,42 @@ import { KEYS, read, write, type Student, type User, type FeeRow } from "../lib/
 import { createVirtualAccount, friendlyError } from "../services/nomba";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { burstConfetti } from "../lib/confetti";
-import { getSavingsFor, deductStudentSavingsForFee } from "../lib/studentSavings";
+import { getSavingsFor, deductStudentSavingsForFee, topUpStudentSavings } from "../lib/studentSavings";
 import { downloadSavingsReceipt } from "../lib/receipt";
+
+function genPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+function suggestEmail(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).join(".");
+  return `${slug}@termly.com`;
+}
 
 export const Route = createFileRoute("/admin/students")({ component: StudentsPage });
 
 function StudentsPage() {
   const [rows, setRows] = useState<Student[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<Student | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", class: "", parentId: "" });
 
+  const refreshUsers = useCallback(() => {
+    const u = read<User[]>(KEYS.users, []);
+    setAllUsers(u);
+    setUsers(u.filter((x) => x.role === "parent"));
+  }, []);
+
   useEffect(() => {
     setRows(read<Student[]>(KEYS.students, []));
-    setUsers(read<User[]>(KEYS.users, []).filter((u) => u.role === "parent"));
-  }, []);
+    refreshUsers();
+  }, [refreshUsers]);
 
   async function save() {
     if (!form.name || !form.class) return toast.error("Name and class are required.");
@@ -145,6 +164,7 @@ function StudentsPage() {
             )}
           </div>
           <StudentSavingsPanel student={view} />
+          <StudentPortalAccessPanel student={view} allUsers={allUsers} onChanged={refreshUsers} />
         </Modal>
       )}
     </>
@@ -183,15 +203,27 @@ function StudentSavingsPanel({ student }: { student: Student }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {feeAmount > 0 && (
+      <div className="mt-3 flex gap-2">
         <button
-          onClick={() => setDeductOpen(true)}
-          disabled={sav.savingsBalance <= 0}
-          className="mt-3 w-full rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          onClick={() => {
+            topUpStudentSavings(student.id, 5000, sav.goal || feeAmount || undefined);
+            refresh();
+            toast.success("₦5,000 added to savings (demo top-up)");
+          }}
+          className="flex-1 rounded-md border border-border py-2 text-xs font-semibold hover:bg-secondary"
         >
-          Deduct for Fees
+          + Add ₦5,000 (Demo)
         </button>
-      )}
+        {feeAmount > 0 && (
+          <button
+            onClick={() => setDeductOpen(true)}
+            disabled={sav.savingsBalance <= 0}
+            className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            Deduct for Fees
+          </button>
+        )}
+      </div>
       {deductOpen && (
         <DeductModal
           student={student}
@@ -331,6 +363,117 @@ function DeductModal({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function StudentPortalAccessPanel({
+  student,
+  allUsers,
+  onChanged,
+}: {
+  student: Student;
+  allUsers: User[];
+  onChanged: () => void;
+}) {
+  const account = allUsers.find((u) => u.role === "student" && u.studentId === student.id);
+  const [creatingOpen, setCreatingOpen] = useState(false);
+  const [email, setEmail] = useState(suggestEmail(student.name));
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+
+  function createAccount() {
+    if (!email || !email.includes("@")) return toast.error("Enter a valid email address.");
+    const users = read<User[]>(KEYS.users, []);
+    if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      return toast.error("An account with this email already exists.");
+    }
+    const password = genPassword();
+    const newUser: User = {
+      id: `USR-${Date.now()}`,
+      name: student.name,
+      email,
+      role: "student",
+      password,
+      createdAt: new Date().toISOString(),
+      studentId: student.id,
+    };
+    write(KEYS.users, [...users, newUser]);
+    setRevealedPassword(password);
+    setCreatingOpen(false);
+    onChanged();
+    toast.success("Student portal account created");
+  }
+
+  function resetPassword() {
+    if (!account) return;
+    const password = genPassword();
+    const users = read<User[]>(KEYS.users, []);
+    write(KEYS.users, users.map((u) => (u.id === account.id ? { ...u, password } : u)));
+    setRevealedPassword(password);
+    onChanged();
+    toast.success("Password reset");
+  }
+
+  function revokeAccess() {
+    if (!account) return;
+    const users = read<User[]>(KEYS.users, []);
+    write(KEYS.users, users.filter((u) => u.id !== account.id));
+    setRevealedPassword(null);
+    onChanged();
+    toast.success("Portal access revoked");
+  }
+
+  return (
+    <div className="mt-4 rounded-md border border-border bg-secondary/30 p-3">
+      <div className="text-xs font-semibold uppercase text-muted-foreground">Student Portal Access</div>
+
+      {account ? (
+        <div className="mt-2 text-sm">
+          <div><span className="text-muted-foreground">Login email:</span> {account.email}</div>
+          {revealedPassword && (
+            <div className="mt-2 rounded-md bg-success-soft px-3 py-2 text-xs text-success">
+              New password: <span className="font-mono font-semibold">{revealedPassword}</span>
+              <div className="mt-1 text-success/80">Share this with the student now — it won't be shown again.</div>
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            <button onClick={resetPassword} className="flex-1 rounded-md border border-border py-2 text-xs font-semibold hover:bg-secondary">
+              Reset Password
+            </button>
+            <button onClick={revokeAccess} className="flex-1 rounded-md border border-destructive/40 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10">
+              Revoke Access
+            </button>
+          </div>
+        </div>
+      ) : creatingOpen ? (
+        <div className="mt-2">
+          <label className="block text-xs font-medium">Login email</label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">A secure password will be generated automatically.</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={() => setCreatingOpen(false)} className="flex-1 rounded-md border border-border py-2 text-xs font-medium hover:bg-secondary">
+              Cancel
+            </button>
+            <button onClick={createAccount} className="flex-1 rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+              Create Account
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <p className="text-xs text-muted-foreground">No portal login exists for this student yet.</p>
+          <button
+            onClick={() => setCreatingOpen(true)}
+            className="mt-2 w-full rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            Create Student Login
+          </button>
+        </div>
+      )}
     </div>
   );
 }

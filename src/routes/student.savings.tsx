@@ -1,29 +1,46 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
+import { getSession } from "../lib/auth";
 import { fmtNaira, fmtDate } from "../lib/format";
-import { readWallets, DEFAULT_WALLETS, type DemoWallets } from "../lib/demoWallet";
+import { getStudentPortalData, type StudentPortalData } from "../lib/studentPortal";
 
 export const Route = createFileRoute("/student/savings")({ component: Page });
 
 function Page() {
-  const [wallets, setWallets] = useState<DemoWallets>(DEFAULT_WALLETS);
+  const session = getSession();
+  const [data, setData] = useState<StudentPortalData | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const refresh = useCallback(() => setWallets(readWallets()), []);
+  const refresh = useCallback(() => setData(getStudentPortalData(session?.studentId, session?.name)), [session?.studentId, session?.name]);
 
   useEffect(() => {
     setMounted(true);
-    setWallets(readWallets());
+    refresh();
     window.addEventListener("termly:wallet:updated", refresh);
-    return () => window.removeEventListener("termly:wallet:updated", refresh);
+    window.addEventListener("termly:savings:updated", refresh);
+    return () => {
+      window.removeEventListener("termly:wallet:updated", refresh);
+      window.removeEventListener("termly:savings:updated", refresh);
+    };
   }, [refresh]);
 
   if (!mounted) return null;
 
-  const { student } = wallets;
-  const pct = student.feeOwed > 0 ? Math.min(100, Math.round((student.savingsBalance / student.feeOwed) * 100)) : 0;
-  const stillNeeded = Math.max(0, student.feeOwed - student.savingsBalance);
+  if (!data) {
+    return (
+      <>
+        <PageHeader title="My Savings" subtitle="Track your savings towards your school fee goal." />
+        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          No student record found for your account yet. Please contact your school administrator.
+        </div>
+      </>
+    );
+  }
+
+  const { student, savingsBalance, savingsGoal, savingsHistory } = data;
+  const pct = savingsGoal > 0 ? Math.min(100, Math.round((savingsBalance / savingsGoal) * 100)) : 0;
+  const stillNeeded = Math.max(0, savingsGoal - savingsBalance);
 
   return (
     <>
@@ -33,14 +50,14 @@ function Page() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-base font-semibold">{student.name}</div>
-            <div className="text-xs text-muted-foreground">{student.admissionNumber}</div>
+            <div className="text-xs text-muted-foreground">{student.id}</div>
           </div>
           <span className="text-2xl">👦</span>
         </div>
         <div className="mt-4 text-xs text-muted-foreground">Savings Progress</div>
         <div className="mt-1 text-2xl font-bold">
-          {fmtNaira(student.savingsBalance)}{" "}
-          <span className="text-sm font-normal text-muted-foreground">of {fmtNaira(student.feeOwed)}</span>
+          {fmtNaira(savingsBalance)}{" "}
+          <span className="text-sm font-normal text-muted-foreground">of {fmtNaira(savingsGoal)}</span>
         </div>
         <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
@@ -75,7 +92,7 @@ function Page() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {student.savingsHistory.map((h, i) => (
+            {savingsHistory.map((h, i) => (
               <tr key={i}>
                 <td className="px-5 py-2 text-muted-foreground">{fmtDate(h.date)}</td>
                 <td className="px-5 py-2">{h.type}</td>
@@ -87,7 +104,7 @@ function Page() {
                 <td className="px-5 py-2 text-xs text-muted-foreground">{h.reference}</td>
               </tr>
             ))}
-            {student.savingsHistory.length === 0 && (
+            {savingsHistory.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No savings activity yet.</td>
               </tr>

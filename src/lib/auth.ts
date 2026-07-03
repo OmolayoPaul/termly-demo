@@ -8,6 +8,7 @@ export type Session = {
   email: string;
   role: Role;
   phone?: string;
+  studentId?: string;
 };
 
 export function getSession(): Session | null {
@@ -30,14 +31,16 @@ export const demoCreds: Record<Role, { email: string; password: string; name: st
   student: { email: "student@termly.com", password: "Student2026", name: "Emeka Okonkwo" },
 };
 
+export const DEMO_STUDENT_ID = "TML/2024/001";
+
 export function authenticate(email: string, password: string, role: Role): Session | null {
   const demo = demoCreds[role];
   if (email === demo.email && password === demo.password) {
-    return { id: `demo-${role}`, name: demo.name, email, role };
+    return { id: `demo-${role}`, name: demo.name, email, role, studentId: role === "student" ? DEMO_STUDENT_ID : undefined };
   }
   const users = read<User[]>(KEYS.users, []);
   const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase() && x.password === password && x.role === role);
-  if (u) return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone };
+  if (u) return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone, studentId: u.studentId };
   return null;
 }
 

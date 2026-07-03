@@ -1,28 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageHeader, StatCard } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
-import { KEYS, read, type FeeRow } from "../lib/storage";
+import { getSession } from "../lib/auth";
 import { fmtNaira, fmtDate } from "../lib/format";
-import { readWallets, DEFAULT_WALLETS, type DemoWallets } from "../lib/demoWallet";
+import { getStudentPortalData, type StudentPortalData } from "../lib/studentPortal";
 
 export const Route = createFileRoute("/student/fees")({ component: Page });
 
 function Page() {
-  const [wallets, setWallets] = useState<DemoWallets>(DEFAULT_WALLETS);
+  const session = getSession();
+  const [data, setData] = useState<StudentPortalData | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const refresh = useCallback(() => setData(getStudentPortalData(session?.studentId, session?.name)), [session?.studentId, session?.name]);
 
   useEffect(() => {
     setMounted(true);
-    setWallets(readWallets());
-  }, []);
+    refresh();
+  }, [refresh]);
 
   if (!mounted) return null;
 
-  const { student } = wallets;
-  const fees = read<FeeRow[]>(KEYS.fees, []).filter((f) => f.studentName === student.name);
-  const totalOwed = fees.reduce((s, f) => s + (f.amount - f.paid), 0);
-  const totalPaid = fees.reduce((s, f) => s + f.paid, 0);
+  if (!data) {
+    return (
+      <>
+        <PageHeader title="My Fees" subtitle="Fees charged to your account and payment status." />
+        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          No student record found for your account yet. Please contact your school administrator.
+        </div>
+      </>
+    );
+  }
+
+  const { fees, outstandingFees, totalPaid } = data;
 
   return (
     <>
@@ -30,7 +41,7 @@ function Page() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <StatCard label="Total Paid" value={fmtNaira(totalPaid)} tone="success" />
-        <StatCard label="Total Outstanding" value={fmtNaira(totalOwed)} tone={totalOwed > 0 ? "warning" : "success"} />
+        <StatCard label="Total Outstanding" value={fmtNaira(outstandingFees)} tone={outstandingFees > 0 ? "warning" : "success"} />
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-sm">

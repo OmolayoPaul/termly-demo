@@ -4,6 +4,7 @@ import { fmtNaira } from "../lib/format";
 import { KEYS, read, write, type FeeRow, type PayrollRow, type Student } from "../lib/storage";
 import { students as seedStudents, fees as seedFees, payroll as seedPayroll } from "../lib/seed";
 import { getSession } from "../lib/auth";
+import { getStudentPortalData } from "../lib/studentPortal";
 
 export function DemoWalletDashboard() {
   const [mounted, setMounted] = useState(false);
@@ -16,12 +17,18 @@ export function DemoWalletDashboard() {
     setMounted(true);
     setWallets(readWallets());
     window.addEventListener("termly:wallet:updated", refresh);
-    return () => window.removeEventListener("termly:wallet:updated", refresh);
+    window.addEventListener("termly:savings:updated", refresh);
+    return () => {
+      window.removeEventListener("termly:wallet:updated", refresh);
+      window.removeEventListener("termly:savings:updated", refresh);
+    };
   }, [refresh]);
 
   if (!mounted) return null;
 
-  const isStudent = getSession()?.role === "student";
+  const session = getSession();
+  const isStudent = session?.role === "student";
+  const myData = isStudent ? getStudentPortalData(session?.studentId, session?.name) : null;
 
   const { student } = wallets;
   const pct = student.feeOwed > 0
@@ -29,6 +36,12 @@ export function DemoWalletDashboard() {
     : 0;
   const barColor =
     pct >= 100 ? "bg-yellow-400" : pct >= 75 ? "bg-success" : pct >= 25 ? "bg-warning" : "bg-red-500";
+
+  const myPct = myData && myData.savingsGoal > 0
+    ? Math.min(100, Math.round((myData.savingsBalance / myData.savingsGoal) * 100))
+    : 0;
+  const myBarColor =
+    myPct >= 100 ? "bg-yellow-400" : myPct >= 75 ? "bg-success" : myPct >= 25 ? "bg-warning" : "bg-red-500";
 
   function handleReset() {
     resetWallets();
@@ -73,23 +86,23 @@ export function DemoWalletDashboard() {
           </div>
 
           <div className="divide-y divide-border">
-            {isStudent && (
+            {isStudent && myData && (
               <div className="bg-primary/5 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">🎒</span>
                   <div className="flex-1">
                     <div className="text-sm font-semibold">My Savings Wallet</div>
-                    <div className="text-xs text-muted-foreground">{student.admissionNumber}</div>
+                    <div className="text-xs text-muted-foreground">{myData.student.id}</div>
                   </div>
-                  <div className="text-sm font-semibold">{fmtNaira(student.savingsBalance)}</div>
+                  <div className="text-sm font-semibold">{fmtNaira(myData.savingsBalance)}</div>
                 </div>
                 <div className="mt-1.5 text-xs text-muted-foreground">
-                  {fmtNaira(student.savingsBalance)} / {fmtNaira(student.feeOwed)} ({pct}%)
+                  {fmtNaira(myData.savingsBalance)} / {fmtNaira(myData.savingsGoal)} ({myPct}%)
                 </div>
                 <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${barColor} ${pct >= 100 ? "animate-pulse" : ""}`}
-                    style={{ width: `${pct}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${myBarColor} ${myPct >= 100 ? "animate-pulse" : ""}`}
+                    style={{ width: `${myPct}%` }}
                   />
                 </div>
               </div>
