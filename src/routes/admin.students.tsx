@@ -3,12 +3,13 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
-import { KEYS, read, write, type Student, type User, type FeeRow } from "../lib/storage";
+import { KEYS, read, write, logPortalAudit, type Student, type User, type FeeRow, type PortalAuditEvent } from "../lib/storage";
 import { createVirtualAccount, friendlyError } from "../services/nomba";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { burstConfetti } from "../lib/confetti";
 import { getSavingsFor, deductStudentSavingsForFee, topUpStudentSavings } from "../lib/studentSavings";
 import { downloadSavingsReceipt } from "../lib/receipt";
+import { getSession } from "../lib/auth";
 
 function genPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -32,11 +33,13 @@ function StudentsPage() {
   const [view, setView] = useState<Student | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", class: "", parentId: "" });
+  const [auditRefresh, setAuditRefresh] = useState(0);
 
   const refreshUsers = useCallback(() => {
     const u = read<User[]>(KEYS.users, []);
     setAllUsers(u);
     setUsers(u.filter((x) => x.role === "parent"));
+    setAuditRefresh((n) => n + 1);
   }, []);
 
   useEffect(() => {
@@ -165,6 +168,7 @@ function StudentsPage() {
           </div>
           <StudentSavingsPanel student={view} />
           <StudentPortalAccessPanel student={view} allUsers={allUsers} onChanged={refreshUsers} />
+          <StudentPortalAuditPanel studentId={view.id} refreshKey={auditRefresh} />
         </Modal>
       )}
     </>
@@ -398,6 +402,13 @@ function StudentPortalAccessPanel({
       studentId: student.id,
     };
     write(KEYS.users, [...users, newUser]);
+    logPortalAudit({
+      studentId: student.id,
+      studentName: student.name,
+      action: "created",
+      actorName: getSession()?.name ?? "Admin",
+      email,
+    });
     setRevealedPassword(password);
     setCreatingOpen(false);
     onChanged();
@@ -409,6 +420,13 @@ function StudentPortalAccessPanel({
     const password = genPassword();
     const users = read<User[]>(KEYS.users, []);
     write(KEYS.users, users.map((u) => (u.id === account.id ? { ...u, password } : u)));
+    logPortalAudit({
+      studentId: student.id,
+      studentName: student.name,
+      action: "password_reset",
+      actorName: getSession()?.name ?? "Admin",
+      email: account.email,
+    });
     setRevealedPassword(password);
     onChanged();
     toast.success("Password reset");
@@ -418,6 +436,13 @@ function StudentPortalAccessPanel({
     if (!account) return;
     const users = read<User[]>(KEYS.users, []);
     write(KEYS.users, users.filter((u) => u.id !== account.id));
+    logPortalAudit({
+      studentId: student.id,
+      studentName: student.name,
+      action: "revoked",
+      actorName: getSession()?.name ?? "Admin",
+      email: account.email,
+    });
     setRevealedPassword(null);
     onChanged();
     toast.success("Portal access revoked");
@@ -474,6 +499,44 @@ function StudentPortalAccessPanel({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+const AUDIT_LABEL: Record<PortalAuditEvent["action"], string> = {
+  created: "Login created",
+  password_reset: "Password reset",
+  revoked: "Access revoked",
+};
+
+const AUDIT_COLOR: Record<PortalAuditEvent["action"], string> = {
+  created: "text-success",
+  password_reset: "text-warning",
+  revoked: "text-destructive",
+};
+
+function StudentPortalAuditPanel({ studentId, refreshKey }: { studentId: string; refreshKey: number }) {
+  const [events, setEvents] = useState<PortalAuditEvent[]>([]);
+
+  useEffect(() => {
+    const all = read<PortalAuditEvent[]>(KEYS.portalAuditLog, []);
+    setEvents(all.filter((e) => e.studentId === studentId));
+  }, [studentId, refreshKey]);
+
+  if (events.length === 0) return null;
+
+  return (
+    <div className="mt-4 rounded-md border border-border bg-secondary/30 p-3">
+      <div className="text-xs font-semibold uppercase text-muted-foreground">Portal Access History</div>
+      <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto text-xs">
+        {events.map((e) => (
+          <li key={e.id} className="flex items-center justify-between gap-2">
+            <span className={`font-medium ${AUDIT_COLOR[e.action]}`}>{AUDIT_LABEL[e.action]}</span>
+            <span className="truncate text-muted-foreground">{e.email ?? ""}</span>
+            <span className="shrink-0 text-muted-foreground">{fmtDate(e.timestamp)} · {e.actorName}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

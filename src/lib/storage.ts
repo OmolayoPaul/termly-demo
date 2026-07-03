@@ -10,6 +10,7 @@ export const KEYS = {
   teacherProfile: "termly_teacher_profile",
   pendingPayment: "termly_pending_payment",
   currentUser: "termly_current_user",
+  portalAuditLog: "termly_portal_audit_log",
 } as const;
 
 export function read<T>(key: string, fallback: T): T {
@@ -106,6 +107,26 @@ export type TeacherProfile = {
   accountNumber?: string;
   accountName?: string;
 };
+
+export type PortalAuditEvent = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  action: "created" | "password_reset" | "revoked";
+  actorName: string;
+  email?: string;
+  timestamp: string;
+};
+
+export function logPortalAudit(entry: Omit<PortalAuditEvent, "id" | "timestamp">) {
+  const log = read<PortalAuditEvent[]>(KEYS.portalAuditLog, []);
+  const event: PortalAuditEvent = {
+    ...entry,
+    id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date().toISOString(),
+  };
+  write(KEYS.portalAuditLog, [event, ...log].slice(0, 200));
+}
 
 function isFirstRun() {
   return typeof window !== "undefined" && !window.localStorage.getItem("termly_seeded");
