@@ -13,14 +13,28 @@ import { DemoPaymentModal, type DemoPaymentConfig } from "../components/DemoPaym
 
 export const Route = createFileRoute("/parent/fees")({ component: Page });
 
+type PendingPayment = {
+  id: string;
+  feeId: string;
+  studentName: string;
+  term: string;
+  amount: number;
+  savedAt: string;
+};
+
 function Page() {
   const session = getSession();
   const [rows, setRows] = useState<FeeRow[]>(() => read<FeeRow[]>(KEYS.fees, []));
   const [planFor, setPlanFor] = useState<FeeRow | null>(null);
   const [payFor, setPayFor] = useState<FeeRow | null>(null);
+  const [failedFee, setFailedFee] = useState<FeeRow | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>(() =>
+    read<PendingPayment[]>(KEYS.pendingPayments, [])
+  );
 
   const refreshRows = useCallback(() => {
     setRows(read<FeeRow[]>(KEYS.fees, []));
+    setPendingPayments(read<PendingPayment[]>(KEYS.pendingPayments, []));
   }, []);
 
   function handleDemoPaySuccess(f: FeeRow, amount: number, ref: string) {
@@ -43,8 +57,36 @@ function Page() {
       reference: ref,
     });
     write(KEYS.transactions, txs);
+    // Remove from pending if it was there
+    const pending = read<PendingPayment[]>(KEYS.pendingPayments, []);
+    write(KEYS.pendingPayments, pending.filter((p) => p.feeId !== f.id));
     refreshRows();
     toast.success(`${fmtNaira(amount)} paid successfully!`);
+  }
+
+  function handlePayLater(f: FeeRow) {
+    const pending = read<PendingPayment[]>(KEYS.pendingPayments, []);
+    const already = pending.find((p) => p.feeId === f.id);
+    if (!already) {
+      const newPending: PendingPayment = {
+        id: `pp_${Date.now()}`,
+        feeId: f.id,
+        studentName: f.studentName,
+        term: f.term,
+        amount: f.amount - f.paid,
+        savedAt: new Date().toISOString(),
+      };
+      write(KEYS.pendingPayments, [newPending, ...pending]);
+      setPendingPayments([newPending, ...pending]);
+    }
+    setFailedFee(null);
+    toast.info("Payment saved. You'll see a reminder on your dashboard.");
+  }
+
+  function dismissPending(id: string) {
+    const next = pendingPayments.filter((p) => p.id !== id);
+    write(KEYS.pendingPayments, next);
+    setPendingPayments(next);
   }
 
   return (
@@ -54,6 +96,36 @@ function Page() {
         subtitle="View and pay your child's school fees."
         actions={<SecuredByNomba />}
       />
+
+      {/* Pending payment banners */}
+      {pendingPayments.map((p) => {
+        const fee = rows.find((r) => r.id === p.feeId);
+        return (
+          <div key={p.id} className="mb-3 flex items-start justify-between gap-4 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+            <div className="text-sm">
+              <span className="font-semibold text-warning-foreground">⚠ Pending Payment:</span>{" "}
+              You have a pending payment of {fmtNaira(p.amount)} for {p.term}.
+              Complete it now to avoid late fees.
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {fee && fee.status !== "Paid" && (
+                <button
+                  onClick={() => setPayFor(fee)}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                >
+                  Pay Now
+                </button>
+              )}
+              <button
+                onClick={() => dismissPending(p.id)}
+                className="rounded-md border border-border px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        );
+      })}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
@@ -127,9 +199,67 @@ function Page() {
       {payFor && (
         <PayFullModal
           fee={payFor}
-          onClose={() => setPayFor(null)}
-          onSuccess={(amount, ref) => handleDemoPaySuccess(payFor, amount, ref)}
+          onClose={() => {
+            setPayFor(null);
+            setFailedFee(payFor);
+          }}
+          onSuccess={(amount, ref) => {
+            handleDemoPaySuccess(payFor, amount, ref);
+            setPayFor(null);
+            setFailedFee(null);
+          }}
         />
+      )}
+
+      {/* Payment Retry / Incomplete modal */}
+      {failedFee && failedFee.status !== "Paid" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4"
+          onClick={() => setFailedFee(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center gap-2 text-warning-foreground">
+              <span className="text-2xl">⚠</span>
+              <h2 className="text-lg font-bold">Payment Incomplete</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">
+              Your payment of {fmtNaira(failedFee.amount - failedFee.paid)} for{" "}
+              <span className="font-semibold">{failedFee.term}</span> was not completed.
+            </p>
+            <div className="flex gap-3 mb-3">
+              <button
+                onClick={() => {
+                  setPayFor(failedFee);
+                  setFailedFee(null);
+                }}
+                className="flex-1 rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => handlePayLater(failedFee)}
+                className="flex-1 rounded-md border border-border py-2.5 text-sm font-medium hover:bg-secondary"
+              >
+                Pay Later
+              </button>
+            </div>
+            <div className="border-t border-border pt-3 text-center">
+              <p className="mb-2 text-xs text-muted-foreground">Or use installments instead:</p>
+              <button
+                onClick={() => {
+                  setPlanFor(failedFee);
+                  setFailedFee(null);
+                }}
+                className="rounded-md border border-primary/40 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10"
+              >
+                Set Up Monthly Plan
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -31,7 +31,9 @@ import { Route as ParentSavingsRouteImport } from './routes/parent.savings'
 import { Route as ParentInstallmentsRouteImport } from './routes/parent.installments'
 import { Route as ParentFeesRouteImport } from './routes/parent.fees'
 import { Route as ParentDashboardRouteImport } from './routes/parent.dashboard'
+import { Route as AdminVirtualAccountsRouteImport } from './routes/admin.virtual-accounts'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
+import { Route as AdminSubscriptionsRouteImport } from './routes/admin.subscriptions'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminRemindersRouteImport } from './routes/admin.reminders'
 import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
@@ -150,9 +152,19 @@ const ParentDashboardRoute = ParentDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ParentRoute,
 } as any)
+const AdminVirtualAccountsRoute = AdminVirtualAccountsRouteImport.update({
+  id: '/virtual-accounts',
+  path: '/virtual-accounts',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminTransactionsRoute = AdminTransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
@@ -205,7 +217,9 @@ export interface FileRoutesByFullPath {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
@@ -234,7 +248,9 @@ export interface FileRoutesByTo {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
@@ -267,7 +283,9 @@ export interface FileRoutesById {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
+  '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
   '/parent/dashboard': typeof ParentDashboardRoute
   '/parent/fees': typeof ParentFeesRoute
   '/parent/installments': typeof ParentInstallmentsRoute
@@ -301,7 +319,9 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/subscriptions'
     | '/admin/transactions'
+    | '/admin/virtual-accounts'
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
@@ -330,7 +350,9 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/subscriptions'
     | '/admin/transactions'
+    | '/admin/virtual-accounts'
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
@@ -362,7 +384,9 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/subscriptions'
     | '/admin/transactions'
+    | '/admin/virtual-accounts'
     | '/parent/dashboard'
     | '/parent/fees'
     | '/parent/installments'
@@ -547,11 +571,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentDashboardRouteImport
       parentRoute: typeof ParentRoute
     }
+    '/admin/virtual-accounts': {
+      id: '/admin/virtual-accounts'
+      path: '/virtual-accounts'
+      fullPath: '/admin/virtual-accounts'
+      preLoaderRoute: typeof AdminVirtualAccountsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/transactions': {
       id: '/admin/transactions'
       path: '/transactions'
       fullPath: '/admin/transactions'
       preLoaderRoute: typeof AdminTransactionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/subscriptions': {
+      id: '/admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/admin/subscriptions'
+      preLoaderRoute: typeof AdminSubscriptionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/students': {
@@ -614,7 +652,9 @@ interface AdminRouteChildren {
   AdminPayrollRoute: typeof AdminPayrollRoute
   AdminRemindersRoute: typeof AdminRemindersRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminSubscriptionsRoute: typeof AdminSubscriptionsRoute
   AdminTransactionsRoute: typeof AdminTransactionsRoute
+  AdminVirtualAccountsRoute: typeof AdminVirtualAccountsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -626,7 +666,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPayrollRoute: AdminPayrollRoute,
   AdminRemindersRoute: AdminRemindersRoute,
   AdminStudentsRoute: AdminStudentsRoute,
+  AdminSubscriptionsRoute: AdminSubscriptionsRoute,
   AdminTransactionsRoute: AdminTransactionsRoute,
+  AdminVirtualAccountsRoute: AdminVirtualAccountsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

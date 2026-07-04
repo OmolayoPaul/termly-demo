@@ -9,10 +9,14 @@ export const KEYS = {
   mandates: "termly_mandates",
   teacherProfile: "termly_teacher_profile",
   pendingPayment: "termly_pending_payment",
+  pendingPayments: "termly_pending_payments",
   currentUser: "termly_current_user",
   portalAuditLog: "termly_portal_audit_log",
   schoolProfile: "termly_school_profile",
   onboarded: "termly_onboarded",
+  subscriptions: "termly_subscriptions",
+  webhookLogs: "termly_webhook_logs",
+  checkoutAttempts: "termly_checkout_attempts",
 } as const;
 
 export function read<T>(key: string, fallback: T): T {
@@ -40,6 +44,7 @@ export type User = {
   password: string;
   createdAt: string;
   studentId?: string;
+  kyc_verified?: boolean;
 };
 
 export type Student = {

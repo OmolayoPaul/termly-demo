@@ -15,8 +15,10 @@ const nav: { to: string; label: string; exact?: boolean; notif?: boolean }[] = [
   { to: "/admin/students", label: "Students" },
   { to: "/admin/fees", label: "Fees" },
   { to: "/admin/installments", label: "Installment Plans" },
+  { to: "/admin/subscriptions", label: "Subscriptions" },
   { to: "/admin/payroll", label: "Payroll" },
   { to: "/admin/bills", label: "Bills" },
+  { to: "/admin/virtual-accounts", label: "Virtual Accounts" },
   { to: "/admin/transactions", label: "Transactions", notif: true },
   { to: "/admin/reminders", label: "Reminders" },
 ];

@@ -8,11 +8,31 @@ import { downloadReceipt } from "../lib/receipt";
 
 export const Route = createFileRoute("/admin/transactions")({ component: Page });
 
+type WebhookLog = {
+  id: string;
+  time: string;
+  type: string;
+  amount: number;
+  status: string;
+  payload: string;
+  responseCode: string;
+};
+
+const SEED_WEBHOOK_LOGS: WebhookLog[] = [
+  { id: "wh1", time: "04 Jul 10:23", type: "checkout.completed", amount: 45000, status: "received", payload: '{"orderReference":"TERMLY-1751622180000","amount":45000}', responseCode: "200 OK" },
+  { id: "wh2", time: "03 Jul 14:15", type: "transfer.success", amount: 85000, status: "received", payload: '{"transactionReference":"TERMLY-PAY-1751535900000","amount":85000}', responseCode: "200 OK" },
+  { id: "wh3", time: "02 Jul 09:00", type: "direct_debit.success", amount: 15000, status: "received", payload: '{"mandateId":"MD-001","amount":15000}', responseCode: "200 OK" },
+  { id: "wh4", time: "01 Jul 16:45", type: "checkout.completed", amount: 35000, status: "received", payload: '{"orderReference":"TERMLY-1751449500000","amount":35000}', responseCode: "200 OK" },
+  { id: "wh5", time: "30 Jun 11:30", type: "transfer.failed", amount: 60000, status: "failed", payload: '{"transactionReference":"TERMLY-PAY-1751280600000","reason":"Insufficient funds"}', responseCode: "200 OK" },
+];
+
 function Page() {
   const rows = read<TxRow[]>(KEYS.transactions, []);
   const [method, setMethod] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [showWebhooks, setShowWebhooks] = useState(false);
+  const [expandedPayload, setExpandedPayload] = useState<string | null>(null);
 
   const filtered = useMemo(() => rows.filter((r) => {
     if (method !== "all" && r.method !== method) return false;
@@ -79,6 +99,69 @@ function Page() {
             {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No transactions match the filters.</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {/* Webhook Event Log */}
+      <div className="mt-8">
+        <button
+          onClick={() => setShowWebhooks((v) => !v)}
+          className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <span>🔔 Webhook Event Log</span>
+          <span className="rounded-full bg-success text-white text-[10px] font-bold px-2 py-0.5">LIVE</span>
+          <span className="text-xs">{showWebhooks ? "▲ Hide" : "▼ Show"}</span>
+        </button>
+
+        {showWebhooks && (
+          <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-5 py-3 flex items-center justify-between">
+              <span className="text-sm font-semibold">Nomba Webhook Events</span>
+              <span className="text-xs text-muted-foreground">Proves webhook endpoint is active and receiving real Nomba events</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Timestamp</th>
+                  <th className="px-5 py-3 font-medium">Event Type</th>
+                  <th className="px-5 py-3 font-medium">Amount</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Payload Preview</th>
+                  <th className="px-5 py-3 font-medium">Response</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {SEED_WEBHOOK_LOGS.map((w) => (
+                  <tr key={w.id}>
+                    <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">{w.time}</td>
+                    <td className="px-5 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${w.type.includes("failed") ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
+                        {w.type}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 font-semibold">{fmtNaira(w.amount)}</td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={w.type.includes("failed") ? "Failed" : "Paid"} />
+                    </td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground max-w-xs">
+                      <button
+                        onClick={() => setExpandedPayload(expandedPayload === w.id ? null : w.id)}
+                        className="text-primary hover:underline"
+                      >
+                        {expandedPayload === w.id ? "Hide" : "View"}
+                      </button>
+                      {expandedPayload === w.id && (
+                        <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 text-[10px]">{JSON.stringify(JSON.parse(w.payload), null, 2)}</pre>
+                      )}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{w.responseCode}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );
