@@ -1,0 +1,370 @@
+Update Termly with the following additions to strengthen 
+the Checkout + Recurring focus area and Infrastructure 
+track for the Nomba x DevCareer Hackathon 2026.
+
+DO NOT remove or change anything already working.
+Only ADD the following features:
+
+================================================================
+ADDITION 1 — KYC VERIFICATION (Infrastructure Track)
+================================================================
+Add BVN verification step during parent and teacher 
+registration to make Termly KYC-gated.
+
+After signup form submission for Parent or Teacher:
+Show a KYC verification step:
+
+┌─────────────────────────────────┐
+│  🔐 VERIFY YOUR IDENTITY        │
+│  Required for payments          │
+│                                 │
+│  Enter your BVN:                │
+│  [___________________]          │
+│  "11-digit Bank Verification    │
+│   Number"                       │
+│                                 │
+│  Enter your Date of Birth:      │
+│  [___________________]          │
+│                                 │
+│  [Verify Identity]              │
+│                                 │
+│  🔒 Secured by Nomba            │
+│  Your BVN is encrypted and      │
+│  never stored in plain text     │
+└─────────────────────────────────┘
+
+For demo purposes:
+- Accept any 11-digit BVN as valid
+- Show loading: "Verifying with Nomba..."
+- After 2 seconds show: "✓ Identity Verified"
+- Mark user as "kyc_verified: true" in localStorage
+- Users without KYC cannot make payments
+- Show "Complete KYC to enable payments" 
+  if kyc_verified is false
+
+Add KYC badge on user profiles:
+- Green shield: "✓ KYC Verified"
+- Red shield: "⚠ KYC Required"
+
+In architecture note mention:
+"KYC flow uses BVN verification. Production version 
+integrates Dojah or Smile ID for real NIN/BVN lookup 
+against NIBSS database."
+
+================================================================
+ADDITION 2 — SUBSCRIPTION/RECURRING PAYMENT ENGINE
+================================================================
+Add a dedicated Subscriptions tab on the Admin dashboard.
+
+This is a managed recurring payment engine for school fees.
+
+SUBSCRIPTIONS TAB sidebar item (add after Installment Plans):
+
+SUBSCRIPTIONS PAGE:
+
+Header cards:
+- Active Subscriptions: [count]
+- Total Monthly Recurring: ₦[sum]
+- Subscriptions Due This Week: [count]
+- Failed Debits This Month: [count]
+
+Subscription table columns:
+- Student Name
+- Parent Name
+- Plan Name (e.g. "Monthly Fee Plan")
+- Amount per cycle
+- Frequency (Monthly/Termly)
+- Next Debit Date
+- Status (Active/Paused/Failed/Completed)
+- Actions (Pause, Resume, Cancel, Retry)
+
+"Create Subscription Plan" button:
+Opens modal:
+- Select student
+- Plan name
+- Amount per debit
+- Frequency: Monthly or Per Term
+- Start date
+- Number of cycles (e.g. 3 months)
+- Parent phone for notifications
+- "Activate Plan" button
+
+On Activate:
+- Calls createDirectDebitMandate() with the amount,
+  startDate, parentPhone, parentEmail
+- Saves mandate to localStorage "termly_subscriptions"
+- Shows: "✓ Subscription activated!"
+  "First debit: [date]"
+  "Mandate ID: [mandateId]"
+
+SUBSCRIPTION ACTIONS:
+- Pause: sets status to "paused" in localStorage
+- Resume: reactivates mandate
+- Cancel: cancels mandate, sets status to "cancelled"
+- Retry Failed: retries a failed debit immediately
+  Shows: "Retrying debit of ₦[amount]..."
+  Calls direct debit API again
+
+SUBSCRIPTION NOTIFICATIONS:
+3 days before each debit send notification (simulated):
+"₦[amount] will be debited from [parentName]'s 
+account on [date] for [studentName]'s fees."
+
+After successful debit:
+"✓ ₦[amount] successfully debited for [studentName]"
+
+After failed debit:
+"⚠ Debit failed for [studentName]. 
+We will retry in 24 hours."
+
+================================================================
+ADDITION 3 — PAYMENT RETRY LOGIC
+================================================================
+When a checkout payment fails or times out:
+
+Show retry option on Parent Pay Fees page:
+┌─────────────────────────────────┐
+│  ⚠ Payment Incomplete           │
+│                                 │
+│  Your payment of ₦45,000 for   │
+│  First Term was not completed.  │
+│                                 │
+│  [Try Again]  [Pay Later]       │
+│                                 │
+│  Or use installments instead:   │
+│  [Set Up Monthly Plan]          │
+└─────────────────────────────────┘
+
+"Try Again" creates a new checkout order
+"Set Up Monthly Plan" opens direct debit modal
+"Pay Later" saves as pending and shows reminder
+
+Store pending payments in localStorage 
+"termly_pending_payments" array.
+Show pending payment banner on parent dashboard:
+"You have a pending payment of ₦45,000. 
+Complete it now to avoid late fees."
+
+================================================================
+ADDITION 4 — CHECKOUT ANALYTICS (Admin)
+================================================================
+Add a "Payment Analytics" section on Admin Dashboard:
+
+Analytics cards:
+- Checkout Success Rate: [%] 
+  (successful / total checkout attempts)
+- Average Payment Time: [minutes]
+  (time from checkout created to completed)
+- Most Used Payment Method: Card/Transfer
+- Peak Payment Hours: [hour range]
+
+Monthly revenue chart (simple bar chart):
+Shows fee collection per month for current year
+Using recharts or chart.js
+
+Payment funnel:
+"Checkout Created → Payment Page Opened → 
+Payment Completed"
+Shows drop-off at each stage
+
+================================================================
+ADDITION 5 — VIRTUAL ACCOUNT DASHBOARD
+================================================================
+Add a dedicated Virtual Accounts page on Admin sidebar.
+
+Shows all student virtual accounts in one place:
+
+Table columns:
+- Student Name
+- Class
+- Account Number
+- Bank Name
+- Account Reference
+- Total Received (sum of deposits)
+- Last Deposit Date
+- Status (Active/Inactive)
+
+Summary at top:
+- Total Virtual Accounts: [count]
+- Total Received Across All Accounts: ₦[sum]
+- Accounts with Recent Activity (7 days): [count]
+
+"Refresh All" button that re-fetches account status
+
+Each row has "View Transactions" button showing
+all deposits to that virtual account.
+
+================================================================
+ADDITION 6 — PARENT PAYMENT HISTORY EXPORT
+================================================================
+On Parent Transactions tab add:
+
+"Download Statement" button:
+Generates a PDF bank-style statement showing:
+
+┌─────────────────────────────────────────┐
+│  TERMLY PAYMENT STATEMENT               │
+│  Bimron Comprehensive College           │
+│  Period: First Term 2026/2027           │
+├─────────────────────────────────────────┤
+│  Account Holder: Mr. James Okonkwo      │
+│  Student: Emeka Okonkwo (SS2)           │
+│  Generated: 04 Jul 2026                 │
+├─────────────────────────────────────────┤
+│  DATE    │ DESCRIPTION  │ AMOUNT │ BAL  │
+│ 01 Jun   │ Fee Payment  │-45,000 │5,000 │
+│ 15 Jun   │ Savings Top  │-10,000 │15,000│
+│ 28 Jun   │ Library Fee  │ -3,000 │12,000│
+├─────────────────────────────────────────┤
+│  Total Paid: ₦58,000                    │
+│  Outstanding: ₦0                        │
+│  Status: FULLY PAID ✓                   │
+└─────────────────────────────────────────┘
+
+Download as PDF using jsPDF.
+
+================================================================
+ADDITION 7 — WEBHOOK EVENT LOG (Admin)
+================================================================
+Add a "Webhook Logs" section under Transactions tab.
+
+Shows all webhook events received from Nomba:
+Table: Timestamp, Event Type, Amount, Status, 
+Payload Preview, Response Code
+
+This proves to judges the webhook is active and 
+receiving real Nomba events.
+
+For demo: seed with realistic webhook events:
+[
+  { time: "04 Jul 10:23", type: "checkout.completed",
+    amount: 45000, status: "200 OK" },
+  { time: "03 Jul 14:15", type: "transfer.success",
+    amount: 85000, status: "200 OK" },
+  { time: "02 Jul 09:00", type: "direct_debit.success",
+    amount: 15000, status: "200 OK" }
+]
+
+================================================================
+ADDITION 8 — SCHOOL ONBOARDING WIZARD
+================================================================
+When admin logs in for the very first time
+(check localStorage "termly_onboarded" !== true):
+
+Show a 3-step setup wizard BEFORE the dashboard:
+
+STEP 1 — School Profile:
+- School name (pre-fill: Bimron Comprehensive College)
+- Address
+- Phone number
+- Email
+- School type (Primary/Secondary/Both)
+- "Next →" button
+
+STEP 2 — First Term Setup:
+- Current term: First Term 2026/2027
+- Term start date
+- Term end date  
+- Default fee amounts per class:
+  JSS1-3: ₦35,000
+  SS1-3: ₦45,000
+- "Next →" button
+
+STEP 3 — Ready:
+- "✓ Termly is ready!"
+- Shows summary of setup
+- Quick links: Add Students, Add Teachers
+- "Go to Dashboard →" button
+
+Save to localStorage "termly_school_profile"
+Set "termly_onboarded" = true
+Show school name in sidebar header instead of 
+"Termly Admin Portal"
+
+================================================================
+ADDITION 9 — RATE LIMITING (if not already done)
+================================================================
+In server/index.js add:
+
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests. Try again later.' }
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { 
+    error: 'Too many payment attempts. Try again later.' 
+  }
+});
+
+app.use('/api/', limiter);
+app.use('/api/nomba/checkout', paymentLimiter);
+app.use('/api/nomba/transfer', paymentLimiter);
+
+================================================================
+ADDITION 10 — WEBHOOK SIGNATURE VERIFICATION
+================================================================
+In server/routes/webhooks.js add:
+
+const crypto = require('crypto');
+
+router.post('/nomba', (req, res) => {
+  const signature = req.headers['x-nomba-signature'];
+  const payload = JSON.stringify(req.body);
+  const secret = process.env.NOMBA_WEBHOOK_SECRET ||
+    process.env.NOMBA_PRIVATE_KEY;
+
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  if (signature && signature !== expectedSignature) {
+    console.warn('Invalid webhook signature rejected');
+    return res.status(401).json({ 
+      error: 'Invalid signature' 
+    });
+  }
+
+  const event = req.body;
+  console.log('Nomba webhook:', event.type, 
+    new Date().toISOString());
+
+  switch(event.type) {
+    case 'checkout.completed':
+      console.log('Fee payment confirmed:', event.data);
+      break;
+    case 'transfer.success':
+      console.log('Salary confirmed:', event.data);
+      break;
+    case 'transfer.failed':
+      console.log('Transfer failed:', event.data);
+      break;
+    case 'direct_debit.success':
+      console.log('Installment debited:', event.data);
+      break;
+    default:
+      console.log('Unknown event:', event.type);
+  }
+
+  res.status(200).json({ received: true });
+});
+
+================================================================
+AFTER ALL ADDITIONS
+================================================================
+1. Run: npm run build:client
+2. Restart server: npm start
+3. Commit to GitHub:
+   git add .
+   git commit -m "Add KYC, subscriptions engine, 
+     analytics, virtual account dashboard, 
+     webhook verification and rate limiting"
+   git push
+4. Confirm app loads at live URL
+5. Test each new feature one by one
