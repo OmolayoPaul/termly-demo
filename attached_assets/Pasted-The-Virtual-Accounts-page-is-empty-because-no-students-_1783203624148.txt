@@ -1,0 +1,206 @@
+The Virtual Accounts page is empty because no students 
+have been registered yet. Fix this by:
+
+STEP 1 — Seed demo students with virtual accounts
+Add these pre-loaded demo students to localStorage 
+"termly_students" on first load if no students exist:
+
+[
+  {
+    id: "student-001",
+    admissionNumber: "TMLY/2026/001",
+    name: "Emeka Okonkwo",
+    class: "SS2",
+    gender: "Male",
+    dateOfBirth: "2009-03-15",
+    parent: {
+      name: "Mr. James Okonkwo",
+      phone: "08012345678",
+      email: "parent@termly.com",
+      relationship: "Father"
+    },
+    virtualAccount: {
+      accountNumber: "9901234567",
+      bankName: "Nomba MFB",
+      accountReference: "STUDENT-student-001"
+    },
+    savings: {
+      balance: 25000,
+      goal: 300000,
+      history: [
+        {
+          date: "2026-06-01",
+          type: "Deposit",
+          amount: 15000,
+          balanceAfter: 25000,
+          description: "Savings top-up",
+          reference: "NMB/SAV/2026/00234567"
+        }
+      ]
+    },
+    fees: [],
+    createdAt: "2026-06-01"
+  },
+  {
+    id: "student-002",
+    admissionNumber: "TMLY/2026/002",
+    name: "Amaka Eze",
+    class: "JSS3",
+    gender: "Female",
+    dateOfBirth: "2011-07-22",
+    parent: {
+      name: "Mrs. Grace Eze",
+      phone: "08087654321",
+      email: "grace.eze@gmail.com",
+      relationship: "Mother"
+    },
+    virtualAccount: {
+      accountNumber: "9907654321",
+      bankName: "Nomba MFB",
+      accountReference: "STUDENT-student-002"
+    },
+    savings: {
+      balance: 5000,
+      goal: 200000,
+      history: []
+    },
+    fees: [],
+    createdAt: "2026-06-02"
+  },
+  {
+    id: "student-003",
+    admissionNumber: "TMLY/2026/003",
+    name: "Tunde Adeyemi",
+    class: "SS1",
+    gender: "Male",
+    dateOfBirth: "2010-11-05",
+    parent: {
+      name: "Mr. Biodun Adeyemi",
+      phone: "08099887766",
+      email: "biodun.adeyemi@gmail.com",
+      relationship: "Father"
+    },
+    virtualAccount: {
+      accountNumber: "9909988776",
+      bankName: "Nomba MFB",
+      accountReference: "STUDENT-student-003"
+    },
+    savings: {
+      balance: 50000,
+      goal: 250000,
+      history: []
+    },
+    fees: [],
+    createdAt: "2026-06-03"
+  },
+  {
+    id: "student-004",
+    admissionNumber: "TMLY/2026/004",
+    name: "Chisom Nwosu",
+    class: "JSS1",
+    gender: "Female",
+    dateOfBirth: "2013-01-18",
+    parent: {
+      name: "Dr. Chukwuemeka Nwosu",
+      phone: "08055443322",
+      email: "chukwuemeka.nwosu@gmail.com",
+      relationship: "Father"
+    },
+    virtualAccount: {
+      accountNumber: "9905544332",
+      bankName: "Nomba MFB",
+      accountReference: "STUDENT-student-004"
+    },
+    savings: {
+      balance: 0,
+      goal: 100000,
+      history: []
+    },
+    fees: [],
+    createdAt: "2026-06-04"
+  },
+  {
+    id: "student-005",
+    admissionNumber: "TMLY/2026/005",
+    name: "Ibrahim Musa",
+    class: "SS3",
+    gender: "Male",
+    dateOfBirth: "2008-09-30",
+    parent: {
+      name: "Alhaji Musa Ibrahim",
+      phone: "08033221100",
+      email: "musa.ibrahim@gmail.com",
+      relationship: "Father"
+    },
+    virtualAccount: {
+      accountNumber: "9903322110",
+      bankName: "Nomba MFB",
+      accountReference: "STUDENT-student-005"
+    },
+    savings: {
+      balance: 100000,
+      goal: 350000,
+      history: []
+    },
+    fees: [],
+    createdAt: "2026-06-05"
+  }
+]
+
+STEP 2 — Auto-generate fees for demo students
+For each demo student auto-generate fees based 
+on their class using the fee templates:
+
+SS2 (Emeka): Total ₦300,000
+SS1 (Tunde): Total ₦250,000
+JSS3 (Amaka): Total ₦200,000
+JSS1 (Chisom): Total ₦100,000
+SS3 (Ibrahim): Total ₦350,000
+
+Set fee statuses realistically:
+- Emeka: School Fees Paid, others Unpaid
+- Tunde: All Paid
+- Amaka: School Fees Partial, others Unpaid
+- Chisom: All Unpaid
+- Ibrahim: All Paid
+
+STEP 3 — Virtual Accounts page now shows data
+The Virtual Accounts page must read from 
+localStorage "termly_students" and display 
+all students with virtual accounts.
+
+Total Virtual Accounts: 5
+Total Received: sum of all paid fees
+Recent Activity: students with payments in last 7 days
+
+Each row shows:
+- Student name and avatar
+- Class badge
+- Account number (9901234567)
+- Bank (Nomba MFB)
+- Reference (STUDENT-student-001)
+- Total Received (sum of paid fees for that student)
+- Last Deposit date
+- Status: Active (green badge)
+- Actions: View Transactions button
+
+STEP 4 — Demo wallet panel update
+Update "termly_demo_wallets" in localStorage
+to reflect realistic balances based on 
+the demo students above:
+
+school balance: 1,045,000 
+(sum of all paid fees across students)
+parent balance: 150,000 (James Okonkwo)
+student savings: 25,000 (Emeka)
+teacher balance: 0
+
+STEP 5 — Seed check on every page load
+In the main App component or index file,
+on every load check:
+if localStorage "termly_students" is empty 
+or doesn't exist → seed the demo data above.
+
+This ensures the app always has realistic 
+data for judges to see immediately without 
+having to manually add students first.

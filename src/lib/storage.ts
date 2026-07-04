@@ -284,6 +284,39 @@ function isFeeTemplatesSeeded() {
   return typeof window !== "undefined" && !!window.localStorage.getItem("termly_fee_templates_seeded_v1");
 }
 
+const DEMO_VIRTUAL_ACCOUNTS: Record<string, { accountNumber: string; bankName: string; accountReference: string }> = {
+  "Emeka Okonkwo":  { accountNumber: "9901234567", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/001" },
+  "Amaka Eze":      { accountNumber: "9907654321", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/002" },
+  "Tunde Adeyemi":  { accountNumber: "9909988776", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/003" },
+  "Chisom Nwosu":   { accountNumber: "9905544332", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/004" },
+  "Ibrahim Musa":   { accountNumber: "9903322110", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/005" },
+};
+
+export function demoVirtualAccountFor(student: Student): Student["virtualAccount"] {
+  if (DEMO_VIRTUAL_ACCOUNTS[student.name]) return DEMO_VIRTUAL_ACCOUNTS[student.name];
+  const digits = student.id.replace(/\D/g, "").slice(-7).padStart(7, "0");
+  return {
+    accountNumber: `990${digits}`,
+    bankName: "Nomba MFB",
+    accountReference: `STUDENT-${student.id}`,
+  };
+}
+
+export function patchStudentsWithDemoAccounts() {
+  if (typeof window === "undefined") return;
+  const students = read<Student[]>(KEYS.students, []);
+  if (students.length === 0) return;
+  let changed = false;
+  const patched = students.map((s) => {
+    if (!s.virtualAccount?.accountNumber) {
+      changed = true;
+      return { ...s, virtualAccount: demoVirtualAccountFor(s) };
+    }
+    return s;
+  });
+  if (changed) write(KEYS.students, patched);
+}
+
 export function seedFeeTemplatesIfNeeded() {
   if (isFeeTemplatesSeeded()) return;
   if (typeof window === "undefined") return;
@@ -293,6 +326,7 @@ export function seedFeeTemplatesIfNeeded() {
 
 export function seedIfNeeded() {
   seedFeeTemplatesIfNeeded();
+  patchStudentsWithDemoAccounts();
   if (!isFirstRun()) return;
   const students: Student[] = seedStudents.map((s) => ({
     id: s.id,
@@ -300,6 +334,7 @@ export function seedIfNeeded() {
     class: s.class,
     parentName: s.parent,
     parentEmail: s.parentEmail,
+    virtualAccount: (s as any).virtualAccount ?? demoVirtualAccountFor({ id: s.id, name: s.name } as Student),
   }));
   const fees: FeeRow[] = seedFees.map((f) => ({
     id: f.id,

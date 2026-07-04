@@ -1,0 +1,92 @@
+The Students page shows 6 students but all have 
+"— Not created —" for Virtual Account. Fix this 
+by doing the following:
+
+================================================================
+STEP 1 — ADD "CREATE VIRTUAL ACCOUNT" BUTTON PER STUDENT
+================================================================
+On the Students table, for any student showing 
+"— Not created —" in the Virtual Account column:
+
+Replace the "— Not created —" text with a button:
+[Create Account]  (blue button, small)
+
+When clicked:
+1. Show loading: "Creating Nomba virtual account..."
+2. Call POST /api/nomba/virtual-account with:
+   { studentName: student.name, studentId: student.id }
+3. On success:
+   - Save accountNumber, bankName, accountReference 
+     to that student's record in localStorage
+   - Replace button with: 
+     "[accountNumber] (bankName)" in green text
+   - Show toast: "✓ Virtual account created!"
+4. On failure:
+   - Show: "Failed. Try again." in red
+   - Keep the button visible to retry
+
+================================================================
+STEP 2 — ADD "CREATE ALL MISSING ACCOUNTS" BUTTON
+================================================================
+At the top of the Students page add a button next 
+to "+ Add Student":
+
+[Create Missing Accounts] (secondary button)
+
+When clicked:
+1. Find all students with no virtual account
+2. Show progress modal:
+   "Creating virtual accounts...
+   Processing 1 of 6: Emeka Okonkwo ✓
+   Processing 2 of 6: Amaka Eze ✓
+   Processing 3 of 6: Tunde Adeyemi...
+   ..."
+3. For each student call /api/nomba/virtual-account
+4. Wait 1 second between each call to avoid rate limits
+5. Update each student record in localStorage
+6. Final summary:
+   "✓ 6 virtual accounts created successfully!
+   All students now have dedicated payment accounts."
+7. Refresh the table to show all account numbers
+
+================================================================
+STEP 3 — AUTO-CREATE ON STUDENT REGISTRATION
+================================================================
+When admin adds a NEW student going forward:
+Automatically call /api/nomba/virtual-account 
+immediately after saving the student record.
+Show the account number in the success confirmation.
+
+================================================================
+STEP 4 — UPDATE VIRTUAL ACCOUNTS PAGE
+================================================================
+After accounts are created the Virtual Accounts page
+at /admin/virtual-accounts must automatically 
+populate with all students that have accounts.
+
+It reads from localStorage "termly_students" and 
+shows only students where virtualAccount exists 
+and has an accountNumber.
+
+================================================================
+STEP 5 — SEED VIRTUAL ACCOUNTS FOR EXISTING STUDENTS
+================================================================
+Since these students already exist in localStorage
+without virtual accounts, on page load check each 
+student and if they have no virtual account, 
+show the "Create Account" button prominently.
+
+Also update the existing demo students to have 
+realistic virtual account numbers immediately
+without needing to call the API:
+
+Find each student in localStorage and if 
+virtualAccount is missing or null, add:
+{
+  accountNumber: "990" + student.id.slice(-7),
+  bankName: "Nomba MFB",
+  accountReference: "STUDENT-" + student.id
+}
+
+This gives instant account numbers for the demo
+while the real API creates proper ones when online.

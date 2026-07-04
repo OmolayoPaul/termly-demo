@@ -1,9 +1,29 @@
 export const students = [
-  { id: "TML/2024/001", name: "Emeka Okonkwo", class: "JSS 3A", parent: "Mr. Chidi Okonkwo", parentEmail: "chidi@example.com" },
-  { id: "TML/2024/002", name: "Amaka Eze", class: "JSS 2B", parent: "Mrs. Grace Eze", parentEmail: "grace@example.com" },
-  { id: "TML/2024/003", name: "Tunde Adeyemi", class: "SS 1C", parent: "Mr. Sola Adeyemi", parentEmail: "sola@example.com" },
-  { id: "TML/2024/004", name: "Chisom Nwosu", class: "SS 2A", parent: "Dr. Ngozi Nwosu", parentEmail: "ngozi@example.com" },
-  { id: "TML/2024/005", name: "Ibrahim Musa", class: "JSS 1A", parent: "Alhaji Musa Ibrahim", parentEmail: "musa@example.com" },
+  {
+    id: "TML/2024/001", name: "Emeka Okonkwo", class: "JSS 3A",
+    parent: "Mr. Chidi Okonkwo", parentEmail: "chidi@example.com",
+    virtualAccount: { accountNumber: "9901234567", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/001" },
+  },
+  {
+    id: "TML/2024/002", name: "Amaka Eze", class: "JSS 2B",
+    parent: "Mrs. Grace Eze", parentEmail: "grace@example.com",
+    virtualAccount: { accountNumber: "9907654321", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/002" },
+  },
+  {
+    id: "TML/2024/003", name: "Tunde Adeyemi", class: "SS 1C",
+    parent: "Mr. Sola Adeyemi", parentEmail: "sola@example.com",
+    virtualAccount: { accountNumber: "9909988776", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/003" },
+  },
+  {
+    id: "TML/2024/004", name: "Chisom Nwosu", class: "SS 2A",
+    parent: "Dr. Ngozi Nwosu", parentEmail: "ngozi@example.com",
+    virtualAccount: { accountNumber: "9905544332", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/004" },
+  },
+  {
+    id: "TML/2024/005", name: "Ibrahim Musa", class: "JSS 1A",
+    parent: "Alhaji Musa Ibrahim", parentEmail: "musa@example.com",
+    virtualAccount: { accountNumber: "9903322110", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/005" },
+  },
 ];
 
 export type FeeStatus = "Paid" | "Partial" | "Pending" | "Overdue";

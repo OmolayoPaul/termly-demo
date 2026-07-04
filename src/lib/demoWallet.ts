@@ -26,7 +26,7 @@ export interface DemoWallets {
 }
 
 export const DEFAULT_WALLETS: DemoWallets = {
-  school: { name: "Bimron Comprehensive School", accountNumber: "0123456789", bank: "Nomba Bank", balance: 500000 },
+  school: { name: "Bimron Comprehensive School", accountNumber: "0123456789", bank: "Nomba Bank", balance: 1045000 },
   parent: { name: "Mr. James Okonkwo", accountNumber: "9876543210", bank: "Access Bank", balance: 150000 },
   student: {
     name: "Emeka Okonkwo",
