@@ -11,6 +11,8 @@ export const KEYS = {
   pendingPayment: "termly_pending_payment",
   currentUser: "termly_current_user",
   portalAuditLog: "termly_portal_audit_log",
+  schoolProfile: "termly_school_profile",
+  onboarded: "termly_onboarded",
 } as const;
 
 export function read<T>(key: string, fallback: T): T {
@@ -106,6 +108,24 @@ export type TeacherProfile = {
   bankCode?: string;
   accountNumber?: string;
   accountName?: string;
+};
+
+export type ClassFee = {
+  className: string;
+  amount: number;
+};
+
+export type SchoolProfile = {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  type: "Primary" | "Secondary" | "Both";
+  logoDataUrl?: string;
+  termName: string;
+  termStart: string;
+  termEnd: string;
+  classFees: ClassFee[];
 };
 
 export type PortalAuditEvent = {

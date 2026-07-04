@@ -2,6 +2,8 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { clearSession, getSession } from "../lib/auth";
 import { useWebhookNotifications } from "../hooks/useWebhookNotifications";
+import { OnboardingWizard, isOnboarded, getSchoolProfile } from "../components/OnboardingWizard";
+import type { SchoolProfile } from "../lib/storage";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin · Termly" }] }),
@@ -24,10 +26,17 @@ function AdminLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
   const { unreadCount, dismiss } = useWebhookNotifications();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile | null>(null);
 
   useEffect(() => {
     const s = getSession();
-    if (!s || s.role !== "admin") navigate({ to: "/" });
+    if (!s || s.role !== "admin") {
+      navigate({ to: "/" });
+      return;
+    }
+    setSchoolProfile(getSchoolProfile());
+    if (!isOnboarded()) setShowOnboarding(true);
   }, [navigate]);
 
   function handleNavClick(item: (typeof nav)[0]) {
@@ -35,14 +44,29 @@ function AdminLayout() {
     if (item.notif) dismiss();
   }
 
+  if (showOnboarding) {
+    return (
+      <OnboardingWizard
+        onComplete={(profile) => {
+          setSchoolProfile(profile);
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className={`${open ? "fixed inset-y-0 left-0 z-40 flex" : "hidden md:flex"} w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground`}>
         <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5">
-          <img src="/logo.png" alt="" className="h-10 w-10 rounded-md bg-white object-contain p-0.5" />
-          <div>
-            <div className="text-base font-bold">Termly</div>
-            <div className="text-xs text-sidebar-foreground/70">Admin Portal</div>
+          {schoolProfile?.logoDataUrl ? (
+            <img src={schoolProfile.logoDataUrl} alt="" className="h-10 w-10 rounded-md bg-white object-contain p-0.5" />
+          ) : (
+            <img src="/logo.png" alt="" className="h-10 w-10 rounded-md bg-white object-contain p-0.5" />
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-base font-bold">{schoolProfile?.name || "Termly"}</div>
+            <div className="text-xs text-sidebar-foreground/70">{schoolProfile ? "Powered by Termly" : "Admin Portal"}</div>
           </div>
         </div>
         <nav className="flex-1 px-2 py-4 text-sm">

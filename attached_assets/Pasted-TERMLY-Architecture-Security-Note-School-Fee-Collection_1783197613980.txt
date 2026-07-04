@@ -1,0 +1,109 @@
+TERMLY — Architecture & Security Note
+School Fee Collection, Payroll & Utility Payments
+Powered by Nomba
+
+================================================================
+OVERVIEW
+================================================================
+Termly is a three-tier web application built with:
+- Frontend: React (Vite) with Tailwind CSS
+- Backend: Node.js with Express.js
+- Database: localStorage (demo) / PostgreSQL (production)
+- Hosting: Replit (backend) + Lovable (frontend prototype)
+- Payments: Nomba API (6 endpoints)
+
+================================================================
+AUTHENTICATION
+================================================================
+- JWT-based authentication (jsonwebtoken)
+- Password hashing with bcrypt (saltRounds: 10)
+- Role-based access control: Admin, Parent, Teacher, Student
+- Protected routes check JWT on every request
+- Token expiry and refresh handled server-side
+- All credentials stored in Replit environment secrets
+- Zero credentials exposed to frontend
+
+================================================================
+NOMBA INTEGRATION
+================================================================
+APIs Used:
+1. Authentication API — client credentials token with 
+   auto-refresh 5 minutes before expiry
+2. Checkout Orders API — fee payment via hosted checkout
+3. Bank Transfer API — payroll with account verification
+4. Virtual Accounts API — dedicated account per student
+5. Direct Debit API — monthly installment mandates
+6. Bills API — electricity token and data bundle purchase
+
+All Nomba API calls are server-side only (Express backend).
+Frontend calls /api/nomba/* routes only.
+NOMBA_ENV toggle switches between test and live credentials
+with zero code changes.
+Live credentials active for final submission.
+
+================================================================
+WEBHOOKS
+================================================================
+Endpoint: POST /api/webhooks/nomba
+URL: https://termly-demo--maryfaith450.replit.app/api/webhooks/nomba
+
+Events handled:
+- checkout.completed → mark fee as paid
+- transfer.success → mark salary as disbursed
+- transfer.failed → flag payroll record
+- direct_debit.success → update installment record
+
+Security: HMAC SHA-256 signature verification on every
+incoming webhook using x-nomba-signature header.
+Invalid signatures return 401 immediately.
+
+================================================================
+SECURITY MEASURES
+================================================================
+1. All API credentials in server environment secrets only
+2. Webhook signature verification (HMAC SHA-256)
+3. Rate limiting: 100 requests/15min general,
+   10 payment attempts/min on checkout and transfer
+4. Helmet.js for HTTP security headers
+5. CORS configured server-side
+6. JWT expiry on all protected routes
+7. Role-based route protection (admin/parent/teacher/student)
+8. No sensitive data in frontend code or GitHub
+
+================================================================
+DATA HANDLING
+================================================================
+Demo: localStorage for rapid prototyping and judging
+Production path: PostgreSQL with this schema:
+- users (id, name, email, role, password_hash)
+- students (id, name, class, parent_id, virtual_account)
+- fees (id, student_id, term, amount, status)
+- transactions (id, user_id, amount, status, nomba_ref)
+- payroll (id, teacher_id, amount, status, transaction_id)
+- mandates (id, student_id, amount, months, mandate_id)
+- savings (id, student_id, balance, history)
+
+================================================================
+RELIABILITY
+================================================================
+- Token caching with auto-refresh prevents auth failures
+- Error handling on all API routes with user-friendly messages
+- Console logging of all Nomba responses for debugging
+- Graceful fallback on API failures
+- Server runs on 0.0.0.0 for Replit compatibility
+
+================================================================
+REAL WORLD VALIDATION
+================================================================
+Termly is designed for immediate deployment at Bimron
+Comprehensive College, Lagos — a real secondary school
+where the developer serves as IT teacher during NYSC.
+This gives Termly a direct production validation path
+beyond the hackathon.
+
+================================================================
+REPOSITORY
+================================================================
+GitHub: github.com/paul-omolayo
+Live URL: https://termly-demo--maryfaith450.replit.app
+Webhook URL: https://termly-demo--maryfaith450.replit.app/api/webhooks/nomba

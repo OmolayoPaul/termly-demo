@@ -9,6 +9,16 @@ import { fmtNaira } from "../lib/format";
 import { burstConfetti } from "../lib/confetti";
 import { demoDisburseSalary } from "../lib/demoWallet";
 
+const MONTH_OPTIONS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function currentMonthLabel() {
+  const now = new Date();
+  return `${MONTH_OPTIONS[now.getMonth()]} ${now.getFullYear()}`;
+}
+
 export const Route = createFileRoute("/admin/payroll")({ component: Page });
 
 const DEMO_BANKS = [
@@ -31,10 +41,42 @@ function Page() {
   const [verifying, setVerifying] = useState(false);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState<{ txId: string; amount: number; bank: string; acct: string } | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTeacher, setNewTeacher] = useState({ teacher: "", email: "", subject: "", month: currentMonthLabel(), amount: "" });
 
   useEffect(() => {
     setRows(read<PayrollRow[]>(KEYS.payroll, []));
   }, []);
+
+  function addTeacher() {
+    if (!newTeacher.teacher || !newTeacher.subject || !newTeacher.amount) {
+      return toast.error("Name, subject and amount are required.");
+    }
+    const amount = Number(newTeacher.amount);
+    if (!amount || amount <= 0) return toast.error("Enter a valid salary amount.");
+    const row: PayrollRow = {
+      id: `PR-${Date.now()}`,
+      teacher: newTeacher.teacher,
+      email: newTeacher.email || undefined,
+      subject: newTeacher.subject,
+      month: newTeacher.month || currentMonthLabel(),
+      amount,
+      status: "Pending",
+    };
+    const next = [...rows, row];
+    setRows(next);
+    write(KEYS.payroll, next);
+    toast.success("Teacher added to payroll");
+    setAddOpen(false);
+    setNewTeacher({ teacher: "", email: "", subject: "", month: currentMonthLabel(), amount: "" });
+  }
+
+  function removeTeacher(id: string) {
+    const next = rows.filter((r) => r.id !== id);
+    setRows(next);
+    write(KEYS.payroll, next);
+    toast.success("Removed from payroll");
+  }
 
   function openDisburse(r: PayrollRow) {
     setTarget(r);
@@ -84,7 +126,10 @@ function Page() {
   return (
     <>
       <PageHeader title="Payroll" subtitle="Disburse teacher salaries via Nomba." actions={
-        <button onClick={exportCsv} className="rounded-md border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary">⤓ Export CSV</button>
+        <div className="flex gap-2">
+          <button onClick={() => setAddOpen(true)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">+ Add Teacher</button>
+          <button onClick={exportCsv} className="rounded-md border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary">⤓ Export CSV</button>
+        </div>
       } />
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Total Payroll" value={fmtNaira(total)} />
@@ -111,14 +156,43 @@ function Page() {
                 <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
                 <td className="px-5 py-3 text-right">
                   {r.status === "Pending" ? (
-                    <button onClick={() => openDisburse(r)} className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Disburse via Nomba</button>
+                    <>
+                      <button onClick={() => openDisburse(r)} className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Disburse via Nomba</button>
+                      <button onClick={() => removeTeacher(r.id)} className="ml-2 text-xs font-medium text-destructive hover:underline">Remove</button>
+                    </>
                   ) : (<span className="text-xs text-success">✓ Paid</span>)}
                 </td>
               </tr>
             ))}
+            {rows.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">🧑‍🏫 No teachers on payroll yet. Add one above.</td></tr>}
           </tbody>
         </table>
       </div>
+
+      {addOpen && (
+        <Modal onClose={() => setAddOpen(false)}>
+          <h2 className="text-lg font-semibold">Add Teacher to Payroll</h2>
+          <label className="mt-3 block text-sm font-medium">Full name</label>
+          <input value={newTeacher.teacher} onChange={(e) => setNewTeacher({ ...newTeacher, teacher: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. Mrs. Amaka Nwosu" />
+          <label className="mt-3 block text-sm font-medium">Email (optional)</label>
+          <input value={newTeacher.email} onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="teacher@school.com" />
+          <label className="mt-3 block text-sm font-medium">Subject</label>
+          <input value={newTeacher.subject} onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. Mathematics" />
+          <label className="mt-3 block text-sm font-medium">Month</label>
+          <select value={newTeacher.month} onChange={(e) => setNewTeacher({ ...newTeacher, month: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            {MONTH_OPTIONS.map((m) => {
+              const label = `${m} ${new Date().getFullYear()}`;
+              return <option key={label} value={label}>{label}</option>;
+            })}
+          </select>
+          <label className="mt-3 block text-sm font-medium">Monthly Salary (₦)</label>
+          <input value={newTeacher.amount} onChange={(e) => setNewTeacher({ ...newTeacher, amount: e.target.value.replace(/[^\d]/g, "") })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. 150000" inputMode="numeric" />
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={() => setAddOpen(false)} className="rounded-md border border-border px-3 py-2 text-sm">Cancel</button>
+            <button onClick={addTeacher} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">Add Teacher</button>
+          </div>
+        </Modal>
+      )}
 
       {target && (
         <Modal onClose={() => !sending && setTarget(null)}>

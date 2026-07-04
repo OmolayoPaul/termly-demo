@@ -37,7 +37,9 @@ function storeEvent(orderReference, payload) {
  * Returns true if signature is valid or if no secret is configured (dev fallback).
  */
 function verifySignature(req) {
-  const secret = process.env.NOMBA_WEBHOOK_SECRET || process.env.JWT_SECRET;
+  const isLive = process.env.NOMBA_ENV === 'live';
+  const nombaPrivateKey = isLive ? process.env.NOMBA_LIVE_PRIVATE_KEY : process.env.NOMBA_PRIVATE_KEY;
+  const secret = process.env.NOMBA_WEBHOOK_SECRET || nombaPrivateKey;
   if (!secret) return true; // no secret configured — skip verification
 
   const signature = req.headers['x-nomba-signature'] || req.headers['x-signature'];
@@ -48,7 +50,11 @@ function verifySignature(req) {
 
   const rawBody = JSON.stringify(req.body);
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'));
+  } catch {
+    return false; // malformed signature header (wrong length/encoding)
+  }
 }
 
 /** POST /api/webhooks/nomba — Nomba sends payment events here */

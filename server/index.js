@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
 import nombaRouter from './routes/nomba.js';
 import webhooksRouter from './routes/webhooks.js';
 
@@ -16,6 +17,29 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(IS_PROD ? morgan('combined') : morgan('dev'));
 app.use(cors());
 app.use(express.json());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Try again later.' },
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // max 10 payment attempts per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many payment attempts. Try again later.' },
+});
+
+// Apply general limiter to all API routes
+app.use('/api/', limiter);
+
+// Apply strict limiter to payment-initiating routes
+app.use('/api/nomba/checkout', paymentLimiter);
+app.use('/api/nomba/transfer', paymentLimiter);
 
 app.use('/api/nomba', nombaRouter);
 app.use('/api/webhooks', webhooksRouter);
