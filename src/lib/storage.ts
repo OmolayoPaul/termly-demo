@@ -17,6 +17,7 @@ export const KEYS = {
   subscriptions: "termly_subscriptions",
   webhookLogs: "termly_webhook_logs",
   checkoutAttempts: "termly_checkout_attempts",
+  feeTemplates: "termly_fee_templates",
 } as const;
 
 export function read<T>(key: string, fallback: T): T {
@@ -143,6 +144,128 @@ export type PortalAuditEvent = {
   timestamp: string;
 };
 
+export type FeeTemplateItem = {
+  name: string;
+  amount: number;
+};
+
+export type FeeTemplate = {
+  className: string;
+  total: number;
+  items: FeeTemplateItem[];
+};
+
+export const DEFAULT_FEE_TEMPLATES: FeeTemplate[] = [
+  {
+    className: "JSS 1",
+    total: 100000,
+    items: [
+      { name: "School Fees", amount: 70000 },
+      { name: "Development Levy", amount: 10000 },
+      { name: "Library Fee", amount: 5000 },
+      { name: "Exam Fee", amount: 8000 },
+      { name: "PTA Levy", amount: 7000 },
+    ],
+  },
+  {
+    className: "JSS 2",
+    total: 150000,
+    items: [
+      { name: "School Fees", amount: 110000 },
+      { name: "Development Levy", amount: 15000 },
+      { name: "Library Fee", amount: 5000 },
+      { name: "Exam Fee", amount: 12000 },
+      { name: "PTA Levy", amount: 8000 },
+    ],
+  },
+  {
+    className: "JSS 3",
+    total: 200000,
+    items: [
+      { name: "School Fees", amount: 150000 },
+      { name: "Development Levy", amount: 20000 },
+      { name: "Library Fee", amount: 5000 },
+      { name: "Exam Fee", amount: 15000 },
+      { name: "PTA Levy", amount: 10000 },
+    ],
+  },
+  {
+    className: "SS 1",
+    total: 250000,
+    items: [
+      { name: "School Fees", amount: 190000 },
+      { name: "Development Levy", amount: 25000 },
+      { name: "Library Fee", amount: 7000 },
+      { name: "Exam Fee", amount: 18000 },
+      { name: "PTA Levy", amount: 10000 },
+    ],
+  },
+  {
+    className: "SS 2",
+    total: 300000,
+    items: [
+      { name: "School Fees", amount: 230000 },
+      { name: "Development Levy", amount: 30000 },
+      { name: "Library Fee", amount: 7000 },
+      { name: "Exam Fee", amount: 23000 },
+      { name: "PTA Levy", amount: 10000 },
+    ],
+  },
+  {
+    className: "SS 3",
+    total: 350000,
+    items: [
+      { name: "School Fees", amount: 265000 },
+      { name: "Development Levy", amount: 35000 },
+      { name: "Library Fee", amount: 7000 },
+      { name: "Exam Fee", amount: 25000 },
+      { name: "PTA Levy", amount: 10000 },
+      { name: "WAEC/NECO Levy", amount: 8000 },
+    ],
+  },
+];
+
+export function getTemplateKeyForClass(studentClass: string): string {
+  const u = studentClass.toUpperCase();
+  if (/JSS[\s\-]?1/.test(u) || /J\.S\.S[\s\-]?1/.test(u)) return "JSS 1";
+  if (/JSS[\s\-]?2/.test(u) || /J\.S\.S[\s\-]?2/.test(u)) return "JSS 2";
+  if (/JSS[\s\-]?3/.test(u) || /J\.S\.S[\s\-]?3/.test(u)) return "JSS 3";
+  if (/SSS[\s\-]?1/.test(u) || /SS[\s\-]?1/.test(u) || /S\.S\.S[\s\-]?1/.test(u)) return "SS 1";
+  if (/SSS[\s\-]?2/.test(u) || /SS[\s\-]?2/.test(u) || /S\.S\.S[\s\-]?2/.test(u)) return "SS 2";
+  if (/SSS[\s\-]?3/.test(u) || /SS[\s\-]?3/.test(u) || /S\.S\.S[\s\-]?3/.test(u)) return "SS 3";
+  return "";
+}
+
+export function getFeeTemplates(): FeeTemplate[] {
+  return read<FeeTemplate[]>(KEYS.feeTemplates, DEFAULT_FEE_TEMPLATES);
+}
+
+export function getTemplateForClass(studentClass: string): FeeTemplate | undefined {
+  const key = getTemplateKeyForClass(studentClass);
+  if (!key) return undefined;
+  const templates = getFeeTemplates();
+  return templates.find((t) => t.className === key);
+}
+
+export function generateFeesForStudent(
+  student: Student,
+  termLabel: string,
+  dueDate: string,
+): FeeRow[] {
+  const template = getTemplateForClass(student.class);
+  if (!template) return [];
+  return template.items.map((item, i) => ({
+    id: `F-${student.id}-${i}-${Date.now()}`,
+    studentId: student.id,
+    studentName: student.name,
+    term: item.name,
+    amount: item.amount,
+    paid: 0,
+    dueDate,
+    status: "Unpaid" as FeeRow["status"],
+  }));
+}
+
 export function logPortalAudit(entry: Omit<PortalAuditEvent, "id" | "timestamp">) {
   const log = read<PortalAuditEvent[]>(KEYS.portalAuditLog, []);
   const event: PortalAuditEvent = {
@@ -157,7 +280,19 @@ function isFirstRun() {
   return typeof window !== "undefined" && !window.localStorage.getItem("termly_seeded");
 }
 
+function isFeeTemplatesSeeded() {
+  return typeof window !== "undefined" && !!window.localStorage.getItem("termly_fee_templates_seeded_v1");
+}
+
+export function seedFeeTemplatesIfNeeded() {
+  if (isFeeTemplatesSeeded()) return;
+  if (typeof window === "undefined") return;
+  write(KEYS.feeTemplates, DEFAULT_FEE_TEMPLATES);
+  window.localStorage.setItem("termly_fee_templates_seeded_v1", "1");
+}
+
 export function seedIfNeeded() {
+  seedFeeTemplatesIfNeeded();
   if (!isFirstRun()) return;
   const students: Student[] = seedStudents.map((s) => ({
     id: s.id,

@@ -3,13 +3,25 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
-import { KEYS, read, write, logPortalAudit, type Student, type User, type FeeRow, type PortalAuditEvent } from "../lib/storage";
+import { KEYS, read, write, logPortalAudit, type Student, type User, type FeeRow, type PortalAuditEvent, getTemplateForClass, generateFeesForStudent, getFeeTemplates, DEFAULT_FEE_TEMPLATES } from "../lib/storage";
 import { createVirtualAccount, friendlyError } from "../services/nomba";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { burstConfetti } from "../lib/confetti";
 import { getSavingsFor, deductStudentSavingsForFee, topUpStudentSavings } from "../lib/studentSavings";
 import { downloadSavingsReceipt } from "../lib/receipt";
 import { getSession } from "../lib/auth";
+
+const CLASS_OPTIONS = [
+  "JSS 1A", "JSS 1B", "JSS 1C",
+  "JSS 2A", "JSS 2B", "JSS 2C",
+  "JSS 3A", "JSS 3B", "JSS 3C",
+  "SS 1A", "SS 1B", "SS 1C",
+  "SS 2A", "SS 2B", "SS 2C",
+  "SS 3A", "SS 3B", "SS 3C",
+];
+
+const TERM_LABEL = "First Term 2026/2027";
+const DUE_DATE = "31 Jan 2027";
 
 function genPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -34,6 +46,8 @@ function StudentsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", class: "", parentId: "" });
   const [auditRefresh, setAuditRefresh] = useState(0);
+  const [confirmation, setConfirmation] = useState<{ student: Student; feeRows: FeeRow[] } | null>(null);
+  const [templates, setTemplates] = useState(() => getFeeTemplates());
 
   const refreshUsers = useCallback(() => {
     const u = read<User[]>(KEYS.users, []);
@@ -44,6 +58,7 @@ function StudentsPage() {
 
   useEffect(() => {
     setRows(read<Student[]>(KEYS.students, []));
+    setTemplates(getFeeTemplates());
     refreshUsers();
   }, [refreshUsers]);
 
@@ -71,9 +86,17 @@ function StudentsPage() {
       const next = [...rows, newStudent];
       setRows(next);
       write(KEYS.students, next);
-      toast.success("Student added");
+
+      const newFeeRows = generateFeesForStudent(newStudent, TERM_LABEL, DUE_DATE);
+      if (newFeeRows.length > 0) {
+        const existingFees = read<FeeRow[]>(KEYS.fees, []);
+        write(KEYS.fees, [...existingFees, ...newFeeRows]);
+      }
+
       setOpen(false);
       setForm({ name: "", class: "", parentId: "" });
+      setConfirmation({ student: newStudent, feeRows: newFeeRows });
+      burstConfetti();
     } catch (e) {
       toast.error(friendlyError(e));
     } finally {
@@ -87,6 +110,8 @@ function StudentsPage() {
     write(KEYS.students, next);
   }
 
+  const selectedTemplate = form.class ? getTemplateForClass(form.class) : undefined;
+
   return (
     <>
       <PageHeader
@@ -94,37 +119,45 @@ function StudentsPage() {
         subtitle="Manage students and dedicated payment accounts."
         actions={<button onClick={() => setOpen(true)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">+ Add Student</button>}
       />
+
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <th className="px-5 py-3 font-medium">Name</th>
               <th className="px-5 py-3 font-medium">Class</th>
+              <th className="px-5 py-3 font-medium">Term Total</th>
               <th className="px-5 py-3 font-medium">Parent</th>
               <th className="px-5 py-3 font-medium">Virtual Account</th>
               <th className="px-5 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map((s) => (
-              <tr key={s.id}>
-                <td className="px-5 py-3 font-medium">{s.name}</td>
-                <td className="px-5 py-3">{s.class}</td>
-                <td className="px-5 py-3">{s.parentName}</td>
-                <td className="px-5 py-3 text-xs">
-                  {s.virtualAccount ? (
-                    <div><div>{s.virtualAccount.accountNumber}</div><div className="text-muted-foreground">{s.virtualAccount.bankName}</div></div>
-                  ) : (
-                    <span className="text-muted-foreground">— Not created —</span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  <button onClick={() => setView(s)} className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-secondary">View</button>
-                  <button onClick={() => remove(s.id)} className="ml-2 text-xs font-medium text-destructive hover:underline">Delete</button>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">👨‍🎓 No students yet. Add one above.</td></tr>}
+            {rows.map((s) => {
+              const tmpl = getTemplateForClass(s.class);
+              return (
+                <tr key={s.id}>
+                  <td className="px-5 py-3 font-medium">{s.name}</td>
+                  <td className="px-5 py-3">{s.class}</td>
+                  <td className="px-5 py-3 font-semibold text-primary">
+                    {tmpl ? fmtNaira(tmpl.total) : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-5 py-3">{s.parentName}</td>
+                  <td className="px-5 py-3 text-xs">
+                    {s.virtualAccount ? (
+                      <div><div>{s.virtualAccount.accountNumber}</div><div className="text-muted-foreground">{s.virtualAccount.bankName}</div></div>
+                    ) : (
+                      <span className="text-muted-foreground">— Not created —</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button onClick={() => setView(s)} className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:bg-secondary">View</button>
+                    <button onClick={() => remove(s.id)} className="ml-2 text-xs font-medium text-destructive hover:underline">Delete</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">👨‍🎓 No students yet. Add one above.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -133,9 +166,28 @@ function StudentsPage() {
         <Modal onClose={() => !creating && setOpen(false)}>
           <h2 className="text-lg font-semibold">Add New Student</h2>
           <label className="mt-3 block text-sm font-medium">Full name</label>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g. Chukwuemeka Obi" />
           <label className="mt-3 block text-sm font-medium">Class</label>
-          <input value={form.class} onChange={(e) => setForm({ ...form, class: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+          <select value={form.class} onChange={(e) => setForm({ ...form, class: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="">— Select class —</option>
+            {CLASS_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {selectedTemplate && (
+            <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase text-primary">Fee Preview — {selectedTemplate.className}</span>
+                <span className="text-sm font-bold text-primary">{fmtNaira(selectedTemplate.total)} / term</span>
+              </div>
+              <ul className="mt-2 space-y-1">
+                {selectedTemplate.items.map((item) => (
+                  <li key={item.name} className="flex justify-between text-xs text-muted-foreground">
+                    <span>{item.name}</span>
+                    <span className="font-medium">{fmtNaira(item.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <label className="mt-3 block text-sm font-medium">Parent</label>
           <select value={form.parentId} onChange={(e) => setForm({ ...form, parentId: e.target.value })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="">— Select parent —</option>
@@ -149,6 +201,14 @@ function StudentsPage() {
             <button onClick={save} disabled={creating} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">{creating ? "Saving…" : "Save Student"}</button>
           </div>
         </Modal>
+      )}
+
+      {confirmation && (
+        <ConfirmationModal
+          student={confirmation.student}
+          feeRows={confirmation.feeRows}
+          onClose={() => setConfirmation(null)}
+        />
       )}
 
       {view && (
@@ -166,12 +226,110 @@ function StudentsPage() {
               </div>
             )}
           </div>
+          <FeeBreakdownPanel student={view} />
           <StudentSavingsPanel student={view} />
           <StudentPortalAccessPanel student={view} allUsers={allUsers} onChanged={refreshUsers} />
           <StudentPortalAuditPanel studentId={view.id} refreshKey={auditRefresh} />
         </Modal>
       )}
     </>
+  );
+}
+
+function ConfirmationModal({ student, feeRows, onClose }: { student: Student; feeRows: FeeRow[]; onClose: () => void }) {
+  const total = feeRows.reduce((s, f) => s + f.amount, 0);
+  const tmpl = getTemplateForClass(student.class);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="rounded-t-xl bg-success px-5 py-4 text-white">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-lg">✓</div>
+            <div>
+              <div className="font-bold">Student Registered!</div>
+              <div className="text-xs text-white/80">Fees auto-generated from class template</div>
+            </div>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-base font-semibold">{student.name}</div>
+              <div className="text-sm text-muted-foreground">{student.class}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Total Fees This Term</div>
+              <div className="text-xl font-bold text-primary">{fmtNaira(total)}</div>
+            </div>
+          </div>
+
+          {feeRows.length > 0 ? (
+            <div className="mt-4">
+              <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Fee Breakdown</div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                {feeRows.map((f, i) => (
+                  <div key={f.id} className={`flex justify-between px-3 py-2 text-sm ${i % 2 === 0 ? "bg-secondary/30" : ""}`}>
+                    <span>{f.term}</span>
+                    <span className="font-semibold">{fmtNaira(f.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between border-t border-border bg-primary/5 px-3 py-2 text-sm font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">{fmtNaira(total)}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
+              No fee template found for class "{student.class}". Please add fees manually from the Fees page.
+            </div>
+          )}
+
+          {student.virtualAccount && (
+            <div className="mt-3 rounded-md border border-info/30 bg-info-soft px-3 py-2 text-xs">
+              <div className="font-semibold text-info">Dedicated Payment Account Created</div>
+              <div className="mt-0.5 text-muted-foreground">{student.virtualAccount.accountNumber} · {student.virtualAccount.bankName}</div>
+            </div>
+          )}
+
+          <button onClick={onClose} className="mt-4 w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeeBreakdownPanel({ student }: { student: Student }) {
+  const allFees = read<FeeRow[]>(KEYS.fees, []);
+  const studentFees = allFees.filter((f) => f.studentId === student.id || f.studentName === student.name);
+  if (studentFees.length === 0) return null;
+  const total = studentFees.reduce((s, f) => s + f.amount, 0);
+  const paid = studentFees.reduce((s, f) => s + f.paid, 0);
+  const balance = total - paid;
+  return (
+    <div className="mt-4 rounded-md border border-border bg-secondary/30 p-3">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase text-muted-foreground">Fee Breakdown This Term</div>
+        <div className="text-xs font-bold text-primary">{fmtNaira(total)} total</div>
+      </div>
+      <div className="mt-2 space-y-1">
+        {studentFees.map((f) => (
+          <div key={f.id} className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">{f.term}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{fmtNaira(f.amount)}</span>
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${f.status === "Paid" ? "bg-success/20 text-success" : "bg-warning/20 text-warning-foreground"}`}>{f.status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 border-t border-border pt-2 flex justify-between text-xs font-semibold">
+        <span>Outstanding</span>
+        <span className={balance > 0 ? "text-warning-foreground" : "text-success"}>{fmtNaira(balance)}</span>
+      </div>
+    </div>
   );
 }
 
@@ -544,7 +702,7 @@ function StudentPortalAuditPanel({ studentId, refreshKey }: { studentId: string;
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="float-right text-muted-foreground hover:text-foreground" aria-label="Close">✕</button>
         {children}
       </div>

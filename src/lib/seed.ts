@@ -1,8 +1,8 @@
 export const students = [
   { id: "TML/2024/001", name: "Emeka Okonkwo", class: "JSS 3A", parent: "Mr. Chidi Okonkwo", parentEmail: "chidi@example.com" },
   { id: "TML/2024/002", name: "Amaka Eze", class: "JSS 2B", parent: "Mrs. Grace Eze", parentEmail: "grace@example.com" },
-  { id: "TML/2024/003", name: "Tunde Adeyemi", class: "SSS 1C", parent: "Mr. Sola Adeyemi", parentEmail: "sola@example.com" },
-  { id: "TML/2024/004", name: "Chisom Nwosu", class: "SSS 2A", parent: "Dr. Ngozi Nwosu", parentEmail: "ngozi@example.com" },
+  { id: "TML/2024/003", name: "Tunde Adeyemi", class: "SS 1C", parent: "Mr. Sola Adeyemi", parentEmail: "sola@example.com" },
+  { id: "TML/2024/004", name: "Chisom Nwosu", class: "SS 2A", parent: "Dr. Ngozi Nwosu", parentEmail: "ngozi@example.com" },
   { id: "TML/2024/005", name: "Ibrahim Musa", class: "JSS 1A", parent: "Alhaji Musa Ibrahim", parentEmail: "musa@example.com" },
 ];
 
@@ -12,25 +12,46 @@ export const fees: {
   id: string; student: string; title: string; amount: number; paid: number;
   dueDate: string; status: FeeStatus;
 }[] = [
-  { id: "F1", student: "Emeka Okonkwo", title: "School Fees", amount: 45000, paid: 45000, dueDate: "31 Jan 2026", status: "Paid" },
-  { id: "F2", student: "Emeka Okonkwo", title: "Development Levy", amount: 10000, paid: 5000, dueDate: "28 Feb 2026", status: "Partial" },
-  { id: "F3", student: "Amaka Eze", title: "School Fees", amount: 45000, paid: 0, dueDate: "31 Jan 2026", status: "Overdue" },
-  { id: "F4", student: "Amaka Eze", title: "Library Fee", amount: 3000, paid: 3000, dueDate: "15 Feb 2026", status: "Paid" },
-  { id: "F5", student: "Tunde Adeyemi", title: "School Fees", amount: 55000, paid: 55000, dueDate: "31 Jan 2026", status: "Paid" },
-  { id: "F6", student: "Tunde Adeyemi", title: "Exam Fee", amount: 8000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
-  { id: "F7", student: "Chisom Nwosu", title: "School Fees", amount: 55000, paid: 20000, dueDate: "31 Jan 2026", status: "Partial" },
-  { id: "F8", student: "Ibrahim Musa", title: "School Fees", amount: 40000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F1", student: "Emeka Okonkwo", title: "School Fees", amount: 150000, paid: 150000, dueDate: "31 Jan 2026", status: "Paid" },
+  { id: "F2", student: "Emeka Okonkwo", title: "Development Levy", amount: 20000, paid: 10000, dueDate: "28 Feb 2026", status: "Partial" },
+  { id: "F3", student: "Emeka Okonkwo", title: "Library Fee", amount: 5000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F4", student: "Emeka Okonkwo", title: "Exam Fee", amount: 15000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+  { id: "F5", student: "Emeka Okonkwo", title: "PTA Levy", amount: 10000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+
+  { id: "F6", student: "Amaka Eze", title: "School Fees", amount: 110000, paid: 0, dueDate: "31 Jan 2026", status: "Overdue" },
+  { id: "F7", student: "Amaka Eze", title: "Development Levy", amount: 15000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F8", student: "Amaka Eze", title: "Library Fee", amount: 5000, paid: 5000, dueDate: "15 Feb 2026", status: "Paid" },
+  { id: "F9", student: "Amaka Eze", title: "Exam Fee", amount: 12000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+  { id: "F10", student: "Amaka Eze", title: "PTA Levy", amount: 8000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+
+  { id: "F11", student: "Tunde Adeyemi", title: "School Fees", amount: 190000, paid: 190000, dueDate: "31 Jan 2026", status: "Paid" },
+  { id: "F12", student: "Tunde Adeyemi", title: "Development Levy", amount: 25000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F13", student: "Tunde Adeyemi", title: "Library Fee", amount: 7000, paid: 7000, dueDate: "15 Feb 2026", status: "Paid" },
+  { id: "F14", student: "Tunde Adeyemi", title: "Exam Fee", amount: 18000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+  { id: "F15", student: "Tunde Adeyemi", title: "PTA Levy", amount: 10000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+
+  { id: "F16", student: "Chisom Nwosu", title: "School Fees", amount: 230000, paid: 80000, dueDate: "31 Jan 2026", status: "Partial" },
+  { id: "F17", student: "Chisom Nwosu", title: "Development Levy", amount: 30000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F18", student: "Chisom Nwosu", title: "Library Fee", amount: 7000, paid: 0, dueDate: "15 Feb 2026", status: "Pending" },
+  { id: "F19", student: "Chisom Nwosu", title: "Exam Fee", amount: 23000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+  { id: "F20", student: "Chisom Nwosu", title: "PTA Levy", amount: 10000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+
+  { id: "F21", student: "Ibrahim Musa", title: "School Fees", amount: 70000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F22", student: "Ibrahim Musa", title: "Development Levy", amount: 10000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F23", student: "Ibrahim Musa", title: "Library Fee", amount: 5000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },
+  { id: "F24", student: "Ibrahim Musa", title: "Exam Fee", amount: 8000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
+  { id: "F25", student: "Ibrahim Musa", title: "PTA Levy", amount: 7000, paid: 0, dueDate: "15 Mar 2026", status: "Pending" },
 ];
 
 export const installments: {
   id: string; student: string; ref: string; amount: number; paid: number;
   dueDate: string; status: "Paid" | "Pending";
 }[] = [
-  { id: "I1", student: "Emeka Okonkwo", ref: "Fee #2", amount: 5000, paid: 5000, dueDate: "28 Feb 2026", status: "Paid" },
-  { id: "I2", student: "Emeka Okonkwo", ref: "Fee #2", amount: 5000, paid: 0, dueDate: "31 Mar 2026", status: "Pending" },
-  { id: "I3", student: "Chisom Nwosu", ref: "Fee #7", amount: 20000, paid: 20000, dueDate: "28 Feb 2026", status: "Paid" },
-  { id: "I4", student: "Chisom Nwosu", ref: "Fee #7", amount: 15000, paid: 0, dueDate: "31 Mar 2026", status: "Pending" },
-  { id: "I5", student: "Chisom Nwosu", ref: "Fee #7", amount: 20000, paid: 0, dueDate: "30 Apr 2026", status: "Pending" },
+  { id: "I1", student: "Emeka Okonkwo", ref: "Fee #2", amount: 10000, paid: 10000, dueDate: "28 Feb 2026", status: "Paid" },
+  { id: "I2", student: "Emeka Okonkwo", ref: "Fee #2", amount: 10000, paid: 0, dueDate: "31 Mar 2026", status: "Pending" },
+  { id: "I3", student: "Chisom Nwosu", ref: "Fee #16", amount: 80000, paid: 80000, dueDate: "28 Feb 2026", status: "Paid" },
+  { id: "I4", student: "Chisom Nwosu", ref: "Fee #16", amount: 75000, paid: 0, dueDate: "31 Mar 2026", status: "Pending" },
+  { id: "I5", student: "Chisom Nwosu", ref: "Fee #16", amount: 75000, paid: 0, dueDate: "30 Apr 2026", status: "Pending" },
 ];
 
 export const payroll: {
@@ -63,11 +84,12 @@ export const transactions: {
   amount: number; method: "Bank Transfer" | "Cash" | "Card" | "Online";
   reference: string;
 }[] = [
-  { id: "T1", date: "28 Jun 2026", student: "Emeka Okonkwo", fee: "School Fees", amount: 45000, method: "Bank Transfer", reference: "TXN/2026/001" },
-  { id: "T2", date: "28 Jun 2026", student: "Emeka Okonkwo", fee: "Development Levy", amount: 5000, method: "Cash", reference: "TXN/2026/002" },
-  { id: "T3", date: "28 Jun 2026", student: "Amaka Eze", fee: "Library Fee", amount: 3000, method: "Card", reference: "TXN/2026/003" },
-  { id: "T4", date: "28 Jun 2026", student: "Tunde Adeyemi", fee: "School Fees", amount: 55000, method: "Online", reference: "TXN/2026/004" },
-  { id: "T5", date: "28 Jun 2026", student: "Chisom Nwosu", fee: "School Fees", amount: 20000, method: "Bank Transfer", reference: "TXN/2026/005" },
+  { id: "T1", date: "28 Jun 2026", student: "Emeka Okonkwo", fee: "School Fees", amount: 150000, method: "Bank Transfer", reference: "TXN/2026/001" },
+  { id: "T2", date: "28 Jun 2026", student: "Emeka Okonkwo", fee: "Development Levy", amount: 10000, method: "Cash", reference: "TXN/2026/002" },
+  { id: "T3", date: "28 Jun 2026", student: "Amaka Eze", fee: "Library Fee", amount: 5000, method: "Card", reference: "TXN/2026/003" },
+  { id: "T4", date: "28 Jun 2026", student: "Tunde Adeyemi", fee: "School Fees", amount: 190000, method: "Online", reference: "TXN/2026/004" },
+  { id: "T5", date: "28 Jun 2026", student: "Tunde Adeyemi", fee: "Library Fee", amount: 7000, method: "Bank Transfer", reference: "TXN/2026/005" },
+  { id: "T6", date: "28 Jun 2026", student: "Chisom Nwosu", fee: "School Fees", amount: 80000, method: "Bank Transfer", reference: "TXN/2026/006" },
 ];
 
 export function nairaFmt(n: number) {
