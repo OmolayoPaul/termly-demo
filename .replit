@@ -56,3 +56,7 @@ JWT_SECRET = "termly-super-secret-jwt-2026-nomba-hackathon"
 PORT = "3001"
 NOMBA_LIVE_CLIENT_ID = "e5e85b13-f560-4643-814e-c87435dbbc15"
 NOMBA_LIVE_PRIVATE_KEY = "8/doS7Q3w77EANpk3vpgSrc05hhOiRWp3eBs01sXyZ1AmovtZUXlmrxie+xnEF2tR4q79t0IFufMD1d4JrkT8g=="
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 60000
