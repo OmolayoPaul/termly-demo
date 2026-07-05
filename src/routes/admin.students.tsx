@@ -5,7 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
 import {
   KEYS, read, write, logPortalAudit,
-  type Student, type User, type FeeRow, type PortalAuditEvent,
+  type Student, type User, type FeeRow, type PortalAuditEvent, type LinkRequest,
   getTemplateForClass, generateFeesForStudent, getFeeTemplates,
   demoVirtualAccountFor,
 } from "../lib/storage";
@@ -62,6 +62,38 @@ function StudentsPage() {
   const [confirmation, setConfirmation] = useState<{ student: Student; feeRows: FeeRow[] } | null>(null);
   const [creatingAccountFor, setCreatingAccountFor] = useState<Record<string, boolean>>({});
   const [bulk, setBulk] = useState<BulkProgress>({ open: false, students: [], current: 0, results: [], done: false });
+  const [linkRequests, setLinkRequests] = useState<LinkRequest[]>(() => read<LinkRequest[]>(KEYS.linkRequests, []));
+
+  const refreshLinkRequests = useCallback(() => {
+    setLinkRequests(read<LinkRequest[]>(KEYS.linkRequests, []));
+  }, []);
+
+  function approveRequest(req: LinkRequest) {
+    const student = rows.find((s) => s.id === req.admissionNumber || s.name === req.studentName);
+    if (!student) { toast.error("Student not found in system."); return; }
+    // Link student to parent
+    const students = read<Student[]>(KEYS.students, []);
+    write(KEYS.students, students.map((s) =>
+      s.id === student.id ? { ...s, parentEmail: req.parentEmail, parentId: req.parentId, parentName: req.parentName } : s,
+    ));
+    setRows(read<Student[]>(KEYS.students, []));
+    // Mark request approved
+    const all = read<LinkRequest[]>(KEYS.linkRequests, []);
+    write(KEYS.linkRequests, all.map((r) =>
+      r.id === req.id ? { ...r, status: "approved" as const, resolvedAt: new Date().toISOString(), resolvedBy: "Admin" } : r,
+    ));
+    refreshLinkRequests();
+    toast.success(`✓ ${req.studentName} linked to ${req.parentName}`);
+  }
+
+  function rejectRequest(req: LinkRequest) {
+    const all = read<LinkRequest[]>(KEYS.linkRequests, []);
+    write(KEYS.linkRequests, all.map((r) =>
+      r.id === req.id ? { ...r, status: "rejected" as const, resolvedAt: new Date().toISOString(), resolvedBy: "Admin" } : r,
+    ));
+    refreshLinkRequests();
+    toast.info(`Request from ${req.parentName} rejected.`);
+  }
 
   const refreshRows = useCallback(() => {
     setRows(read<Student[]>(KEYS.students, []));
@@ -204,6 +236,53 @@ function StudentsPage() {
           </div>
         }
       />
+
+      {/* Link Requests Panel */}
+      {linkRequests.filter((r) => r.status === "pending").length > 0 && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 shadow-sm">
+          <div className="flex items-center justify-between border-b border-primary/20 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                {linkRequests.filter((r) => r.status === "pending").length}
+              </span>
+              <span className="font-semibold text-sm">Pending Child Link Requests</span>
+            </div>
+            <button onClick={refreshLinkRequests} className="text-xs text-muted-foreground hover:text-foreground">⟳ Refresh</button>
+          </div>
+          <div className="divide-y divide-primary/10">
+            {linkRequests.filter((r) => r.status === "pending").map((req) => (
+              <div key={req.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div className="text-sm">
+                  <div className="font-semibold">{req.parentName}</div>
+                  <div className="text-xs text-muted-foreground">{req.parentEmail}</div>
+                  <div className="mt-1 flex items-center gap-2 text-xs">
+                    <span>Requesting to link:</span>
+                    <span className="font-mono font-semibold">{req.admissionNumber}</span>
+                    {req.studentName && <span className="text-muted-foreground">· {req.studentName} ({req.studentClass})</span>}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    Submitted {new Date(req.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => approveRequest(req)}
+                    className="rounded-md bg-success px-4 py-2 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    onClick={() => rejectRequest(req)}
+                    className="rounded-md border border-destructive/40 px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                  >
+                    ✗ Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-sm">

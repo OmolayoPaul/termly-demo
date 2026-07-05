@@ -18,6 +18,7 @@ export const KEYS = {
   webhookLogs: "termly_webhook_logs",
   checkoutAttempts: "termly_checkout_attempts",
   feeTemplates: "termly_fee_templates",
+  linkRequests: "termly_link_requests",
 } as const;
 
 export function read<T>(key: string, fallback: T): T {
@@ -93,6 +94,20 @@ export type PayrollRow = {
   accountName?: string;
   transactionId?: string;
   paidDate?: string;
+};
+
+export type LinkRequest = {
+  id: string;
+  parentId: string;
+  parentName: string;
+  parentEmail: string;
+  admissionNumber: string;
+  studentName?: string;
+  studentClass?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
 };
 
 export type Mandate = {

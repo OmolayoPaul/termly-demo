@@ -4,7 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Spinner } from "../components/Spinner";
 import { getSession } from "../lib/auth";
-import { KEYS, read, write, type FeeRow, type Student, type TxRow, getTemplateForClass, getMyChildren } from "../lib/storage";
+import { KEYS, read, write, type FeeRow, type Student, type TxRow, getTemplateForClass, getMyChildren, type LinkRequest } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
 import { useResumePendingPayment } from "../hooks/usePaymentPolling";
@@ -26,6 +26,19 @@ function ParentDash() {
 
   const kids = getMyChildren();
   const myChildNames = new Set(kids.map((k) => k.name));
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [myRequest, setMyRequest] = useState<LinkRequest | null>(() => {
+    const all = read<LinkRequest[]>(KEYS.linkRequests, []);
+    return all.filter((r) => r.parentEmail.toLowerCase() === session?.email?.toLowerCase())
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+  });
+
+  function refreshMyRequest() {
+    const all = read<LinkRequest[]>(KEYS.linkRequests, []);
+    const mine = all.filter((r) => r.parentEmail.toLowerCase() === session?.email?.toLowerCase())
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+    setMyRequest(mine);
+  }
 
   const poll = useResumePendingPayment(() => {
     setFees(read<FeeRow[]>(KEYS.fees, []));
@@ -221,9 +234,35 @@ function ParentDash() {
           );
         })}
         {kids.length === 0 && (
-          <div className="col-span-full rounded-xl border border-dashed border-border bg-card p-10 text-center">
-            <div className="text-3xl">👨‍👩‍👧</div>
-            <p className="mt-2 text-sm text-muted-foreground">No student linked to your account yet. Contact the school admin.</p>
+          <div className="col-span-full rounded-xl border border-dashed border-border bg-card p-8 text-center">
+            <div className="text-4xl">👨‍👩‍👧</div>
+            <h3 className="mt-3 text-base font-semibold">No child linked yet</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Enter your child's admission number to send a link request to the school admin.</p>
+            {myRequest ? (
+              <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${
+                myRequest.status === "pending"  ? "border-warning/40 bg-warning/10 text-warning-foreground" :
+                myRequest.status === "approved" ? "border-success/40 bg-success/10 text-success" :
+                                                  "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}>
+                {myRequest.status === "pending"  && "⏳ Request pending for "}
+                {myRequest.status === "approved" && "✓ Request approved — "}
+                {myRequest.status === "rejected" && "✗ Request rejected — "}
+                <strong>{myRequest.admissionNumber}</strong>
+                {myRequest.studentName && ` (${myRequest.studentName})`}
+              </div>
+            ) : (
+              <button
+                onClick={() => setLinkOpen(true)}
+                className="mt-4 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                Link My Child
+              </button>
+            )}
+            {myRequest?.status === "rejected" && (
+              <div className="mt-2">
+                <button onClick={() => { setMyRequest(null); setLinkOpen(true); }} className="text-xs text-primary underline">Submit a new request</button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -251,6 +290,14 @@ function ParentDash() {
           feeIds={payAllFor.feeIds}
           onClose={() => setPayAllFor(null)}
           onSuccess={(ref) => handlePayAllSuccess(payAllFor.student, payAllFor.feeIds, payAllFor.amount, ref)}
+        />
+      )}
+
+      {linkOpen && session && (
+        <LinkChildModal
+          session={session}
+          onClose={() => setLinkOpen(false)}
+          onSubmitted={() => { refreshMyRequest(); setLinkOpen(false); }}
         />
       )}
     </>
@@ -295,5 +342,135 @@ function PayAllModal({
       onSuccess={(ref) => onSuccess(ref)}
       onClose={onClose}
     />
+  );
+}
+
+function LinkChildModal({
+  session,
+  onClose,
+  onSubmitted,
+}: {
+  session: { id: string; name: string; email: string };
+  onClose: () => void;
+  onSubmitted: () => void;
+}) {
+  const [admissionNo, setAdmissionNo] = useState("");
+  const [found, setFound] = useState<{ id: string; name: string; class: string } | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  function lookup() {
+    const term = admissionNo.trim().toUpperCase();
+    if (!term) return;
+    const students = read<Student[]>(KEYS.students, []);
+    const match = students.find(
+      (s) => s.id.toUpperCase() === term || s.id.toUpperCase().replace(/\//g, "-") === term.replace(/\//g, "-"),
+    );
+    if (match) {
+      setFound({ id: match.id, name: match.name, class: match.class });
+      setNotFound(false);
+    } else {
+      setFound(null);
+      setNotFound(true);
+    }
+  }
+
+  function submit() {
+    if (!found) return;
+    const existing = read<LinkRequest[]>(KEYS.linkRequests, []);
+    const duplicate = existing.find(
+      (r) => r.parentEmail.toLowerCase() === session.email.toLowerCase() && r.status === "pending",
+    );
+    if (duplicate) {
+      toast.error("You already have a pending request. Please wait for admin approval.");
+      return;
+    }
+    const req: LinkRequest = {
+      id: `LR-${Date.now()}`,
+      parentId: session.id,
+      parentName: session.name,
+      parentEmail: session.email,
+      admissionNumber: found.id,
+      studentName: found.name,
+      studentClass: found.class,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    write(KEYS.linkRequests, [req, ...existing]);
+    setSubmitted(true);
+    toast.success("Request sent! The admin will review and approve it shortly.");
+    setTimeout(onSubmitted, 1500);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-xl bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="rounded-t-xl bg-primary px-5 py-4 text-primary-foreground">
+          <div className="font-bold">🔗 Link My Child</div>
+          <div className="text-xs text-primary-foreground/70">Enter your child's admission number</div>
+        </div>
+
+        {submitted ? (
+          <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success text-2xl text-white">✓</div>
+            <div className="font-semibold text-success">Request sent!</div>
+            <p className="text-sm text-muted-foreground">The school admin will review and approve your request shortly.</p>
+          </div>
+        ) : (
+          <div className="px-5 py-4">
+            <label className="block text-sm font-medium">Admission Number</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                value={admissionNo}
+                onChange={(e) => { setAdmissionNo(e.target.value); setFound(null); setNotFound(false); }}
+                onKeyDown={(e) => e.key === "Enter" && lookup()}
+                placeholder="e.g. TML/2024/006"
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              />
+              <button
+                onClick={lookup}
+                className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/80"
+              >
+                Search
+              </button>
+            </div>
+
+            {notFound && (
+              <p className="mt-2 text-sm text-destructive">
+                No student found with that admission number. Please check and try again.
+              </p>
+            )}
+
+            {found && (
+              <div className="mt-3 rounded-lg border border-success/30 bg-success/5 p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                    {found.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{found.name}</div>
+                    <div className="text-xs text-muted-foreground">{found.class} · {found.id}</div>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Is this your child? Click "Send Request" and the admin will link them to your account.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button onClick={onClose} className="flex-1 rounded-md border border-border py-2.5 text-sm font-medium hover:bg-secondary">Cancel</button>
+              <button
+                onClick={submit}
+                disabled={!found}
+                className="flex-1 rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-40 hover:opacity-90"
+              >
+                Send Request
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
