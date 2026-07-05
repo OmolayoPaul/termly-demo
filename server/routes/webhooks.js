@@ -170,4 +170,34 @@ router.get('/health', (_req, res) => {
   res.json({ eventCount: webhookEvents.size, uptime: process.uptime() });
 });
 
+/**
+ * POST /api/webhooks/demo — Inject a synthetic demo event (for judging/testing).
+ * Body: { type } — one of checkout.completed, transfer.success, transfer.failed, direct_debit.success
+ */
+const DEMO_NAMES = ['Emeka Okonkwo','Amaka Eze','Tunde Adeyemi','Chisom Nwosu','Ibrahim Musa'];
+const DEMO_FEES  = ['School Fees','Development Levy','Library Fee','PTA Levy','Uniform Fee'];
+const DEMO_AMOUNTS = [150000, 10000, 7500, 5000, 190000, 200000];
+
+router.post('/demo', (req, res) => {
+  const type = req.body?.type || 'checkout.completed';
+  const ref  = `DEMO-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+  const amount = DEMO_AMOUNTS[Math.floor(Math.random() * DEMO_AMOUNTS.length)];
+  const name   = DEMO_NAMES[Math.floor(Math.random() * DEMO_NAMES.length)];
+  const fee    = DEMO_FEES[Math.floor(Math.random() * DEMO_FEES.length)];
+
+  const status = type.endsWith('.failed') ? 'FAILED' : 'SUCCESS';
+  storeEvent(ref, {
+    orderReference: ref,
+    transactionRef: `TXN-${ref}`,
+    amount,
+    status,
+    type,
+    studentName: name,
+    description: `${fee} — ${name}`,
+    demo: true,
+  });
+  console.log(`[Webhook] Demo event injected: ${type} ref=${ref}`);
+  res.json({ injected: true, ref, type, amount, studentName: name });
+});
+
 export default router;

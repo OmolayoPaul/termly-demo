@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { KEYS, read, write, type Student, type FeeRow, type TxRow } from "../lib/storage";
 import { fmtNaira } from "../lib/format";
 
@@ -338,6 +338,9 @@ function Page() {
         </div>
       </div>
 
+      {/* Live Webhook Event Log */}
+      <WebhookLog />
+
       {/* Stack */}
       <div className="rounded-xl border border-border bg-card shadow-sm">
         <div className="border-b border-border px-5 py-4 font-semibold">Tech Stack</div>
@@ -353,6 +356,235 @@ function Page() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+type WebhookEvent = {
+  orderReference: string;
+  transactionRef: string;
+  amount: number;
+  status: "SUCCESS" | "FAILED";
+  type: string;
+  studentName?: string;
+  description?: string;
+  demo?: boolean;
+  receivedAt: number;
+};
+
+const EVENT_TYPES = [
+  { value: "checkout.completed",   label: "checkout.completed",   icon: "🛒" },
+  { value: "transfer.success",     label: "transfer.success",     icon: "💸" },
+  { value: "transfer.failed",      label: "transfer.failed",      icon: "❌" },
+  { value: "direct_debit.success", label: "direct_debit.success", icon: "🔄" },
+];
+
+function timeAgo(ms: number) {
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 5)  return "just now";
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  return `${Math.floor(s / 3600)}h ago`;
+}
+
+function WebhookLog() {
+  const [events, setEvents] = useState<WebhookEvent[]>([]);
+  const [injecting, setInjecting] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const sinceRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+  const poll = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/webhooks/recent?since=0`);
+      const data = await res.json();
+      const incoming: WebhookEvent[] = (data.events ?? []).slice(0, 10);
+
+      setEvents((prev) => {
+        const prevIds = new Set(prev.map((e) => e.orderReference));
+        const freshIds = incoming
+          .filter((e) => !prevIds.has(e.orderReference))
+          .map((e) => e.orderReference);
+        if (freshIds.length) setNewIds(new Set(freshIds));
+        return incoming;
+      });
+    } catch { /* server may be starting */ }
+  }, []);
+
+  useEffect(() => {
+    poll();
+  }, [poll]);
+
+  useEffect(() => {
+    if (!autoRefresh) { if (timerRef.current) clearInterval(timerRef.current); return; }
+    timerRef.current = setInterval(poll, 3000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [autoRefresh, poll]);
+
+  // Clear "new" highlight after 3s
+  useEffect(() => {
+    if (newIds.size === 0) return;
+    const t = setTimeout(() => setNewIds(new Set()), 3000);
+    return () => clearTimeout(t);
+  }, [newIds]);
+
+  async function inject(type: string) {
+    setInjecting(true);
+    try {
+      await fetch("/api/webhooks/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      await poll();
+    } finally {
+      setInjecting(false);
+    }
+  }
+
+  const typeIcon: Record<string, string> = {
+    "checkout.completed":   "🛒",
+    "transfer.success":     "💸",
+    "transfer.failed":      "❌",
+    "direct_debit.success": "🔄",
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <span className="text-lg">📡</span>
+            {autoRefresh && (
+              <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success" />
+              </span>
+            )}
+          </div>
+          <div>
+            <div className="font-semibold">Live Webhook Event Log</div>
+            <div className="text-xs text-muted-foreground">
+              Showing last 10 events · auto-refreshes every 3 s
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoRefresh((v) => !v)}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+              autoRefresh
+                ? "border-success/40 bg-success/10 text-success"
+                : "border-border bg-secondary text-muted-foreground"
+            }`}
+          >
+            {autoRefresh ? "● Live" : "○ Paused"}
+          </button>
+          <button
+            onClick={poll}
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            ⟳ Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Inject demo events */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-secondary/20 px-5 py-3">
+        <span className="text-xs font-semibold text-muted-foreground">Inject demo event:</span>
+        {EVENT_TYPES.map((et) => (
+          <button
+            key={et.value}
+            onClick={() => inject(et.value)}
+            disabled={injecting}
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-50"
+          >
+            {et.icon} {et.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Event rows */}
+      {events.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-14 text-center text-muted-foreground">
+          <span className="text-3xl">📭</span>
+          <div className="text-sm font-medium">No webhook events received yet</div>
+          <div className="text-xs">Use the buttons above to inject a demo event, or trigger a real payment flow</div>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {events.map((ev) => {
+            const isNew = newIds.has(ev.orderReference);
+            const isSuccess = ev.status === "SUCCESS";
+            return (
+              <div
+                key={ev.orderReference}
+                className={`flex items-start gap-4 px-5 py-3.5 transition-colors duration-700 ${
+                  isNew ? "bg-success/5" : ""
+                }`}
+              >
+                {/* Icon */}
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base ${
+                  isSuccess ? "bg-success/10" : "bg-destructive/10"
+                }`}>
+                  {typeIcon[ev.type] ?? "🔔"}
+                </div>
+
+                {/* Body */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs font-semibold text-foreground">{ev.type}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      isSuccess
+                        ? "bg-success/15 text-success"
+                        : "bg-destructive/15 text-destructive"
+                    }`}>
+                      {ev.status}
+                    </span>
+                    {ev.demo && (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        DEMO
+                      </span>
+                    )}
+                    {isNew && (
+                      <span className="animate-pulse rounded-full bg-success px-2 py-0.5 text-[10px] font-bold text-white">
+                        NEW
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-0.5 text-sm text-muted-foreground">
+                    {ev.description ?? ev.studentName ?? ev.orderReference}
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground/70">
+                    <span className="font-mono">{ev.orderReference}</span>
+                    {ev.amount > 0 && (
+                      <span className={`font-semibold ${isSuccess ? "text-success" : "text-destructive"}`}>
+                        {fmtNaira(ev.amount)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Time */}
+                <div className="shrink-0 pt-0.5 text-xs text-muted-foreground">
+                  {timeAgo(ev.receivedAt)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {events.length > 0 && (
+        <div className="border-t border-border px-5 py-2 text-center text-xs text-muted-foreground">
+          {events.length} event{events.length !== 1 ? "s" : ""} shown · Webhook endpoint: <span className="font-mono">/api/webhooks/nomba</span>
+        </div>
+      )}
     </div>
   );
 }
