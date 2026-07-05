@@ -19,6 +19,31 @@ function handleError(res, err) {
   res.status(400).json({ error: friendly });
 }
 
+router.get('/health', async (req, res) => {
+  const result = {
+    env: process.env.NOMBA_ENV || 'test',
+    timestamp: new Date().toISOString(),
+    authenticated: false,
+    apis: {},
+  };
+  try {
+    const token = await nomba.getAccessToken();
+    result.authenticated = !!token;
+  } catch (e) {
+    result.authError = e.message;
+  }
+  const apiStatus = result.authenticated ? 'ok' : 'unreachable';
+  result.apis = {
+    auth:           { name: 'Authentication API',   endpoint: '/auth/token/issue',       status: result.authenticated ? 'ok' : 'error', description: 'auto-refresh bearer token' },
+    checkout:       { name: 'Checkout Orders API',  endpoint: '/checkout/orders',         status: apiStatus, description: 'hosted payment page for fee collection' },
+    transfer:       { name: 'Bank Transfer API',    endpoint: '/transfers',               status: apiStatus, description: 'payroll disbursements with account verification' },
+    virtualAccounts:{ name: 'Virtual Accounts API', endpoint: '/accounts/virtual',        status: apiStatus, description: 'one dedicated account per student at registration' },
+    directDebit:    { name: 'Direct Debit API',     endpoint: '/direct-debit/mandates',   status: apiStatus, description: 'monthly installment mandates for school fees' },
+    bills:          { name: 'Bills API',            endpoint: '/bills',                   status: apiStatus, description: 'electricity tokens and data bundles for staff' },
+  };
+  res.json(result);
+});
+
 router.post('/checkout', async (req, res) => {
   try {
     const { amount, email, name, description } = req.body;

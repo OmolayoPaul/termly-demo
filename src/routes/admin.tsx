@@ -21,6 +21,7 @@ const nav: { to: string; label: string; exact?: boolean; notif?: boolean }[] = [
   { to: "/admin/virtual-accounts", label: "Virtual Accounts" },
   { to: "/admin/transactions", label: "Transactions", notif: true },
   { to: "/admin/reminders", label: "Reminders" },
+  { to: "/admin/submission", label: "🏆 Submission" },
 ];
 
 function AdminLayout() {

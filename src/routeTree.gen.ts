@@ -34,6 +34,7 @@ import { Route as ParentDashboardRouteImport } from './routes/parent.dashboard'
 import { Route as AdminVirtualAccountsRouteImport } from './routes/admin.virtual-accounts'
 import { Route as AdminTransactionsRouteImport } from './routes/admin.transactions'
 import { Route as AdminSubscriptionsRouteImport } from './routes/admin.subscriptions'
+import { Route as AdminSubmissionRouteImport } from './routes/admin.submission'
 import { Route as AdminStudentsRouteImport } from './routes/admin.students'
 import { Route as AdminRemindersRouteImport } from './routes/admin.reminders'
 import { Route as AdminPayrollRouteImport } from './routes/admin.payroll'
@@ -167,6 +168,11 @@ const AdminSubscriptionsRoute = AdminSubscriptionsRouteImport.update({
   path: '/subscriptions',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSubmissionRoute = AdminSubmissionRouteImport.update({
+  id: '/submission',
+  path: '/submission',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
   id: '/students',
   path: '/students',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/submission': typeof AdminSubmissionRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/submission': typeof AdminSubmissionRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/admin/payroll': typeof AdminPayrollRoute
   '/admin/reminders': typeof AdminRemindersRoute
   '/admin/students': typeof AdminStudentsRoute
+  '/admin/submission': typeof AdminSubmissionRoute
   '/admin/subscriptions': typeof AdminSubscriptionsRoute
   '/admin/transactions': typeof AdminTransactionsRoute
   '/admin/virtual-accounts': typeof AdminVirtualAccountsRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/submission'
     | '/admin/subscriptions'
     | '/admin/transactions'
     | '/admin/virtual-accounts'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/submission'
     | '/admin/subscriptions'
     | '/admin/transactions'
     | '/admin/virtual-accounts'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/payroll'
     | '/admin/reminders'
     | '/admin/students'
+    | '/admin/submission'
     | '/admin/subscriptions'
     | '/admin/transactions'
     | '/admin/virtual-accounts'
@@ -592,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSubscriptionsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/submission': {
+      id: '/admin/submission'
+      path: '/submission'
+      fullPath: '/admin/submission'
+      preLoaderRoute: typeof AdminSubmissionRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/students': {
       id: '/admin/students'
       path: '/students'
@@ -652,6 +671,7 @@ interface AdminRouteChildren {
   AdminPayrollRoute: typeof AdminPayrollRoute
   AdminRemindersRoute: typeof AdminRemindersRoute
   AdminStudentsRoute: typeof AdminStudentsRoute
+  AdminSubmissionRoute: typeof AdminSubmissionRoute
   AdminSubscriptionsRoute: typeof AdminSubscriptionsRoute
   AdminTransactionsRoute: typeof AdminTransactionsRoute
   AdminVirtualAccountsRoute: typeof AdminVirtualAccountsRoute
@@ -666,6 +686,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPayrollRoute: AdminPayrollRoute,
   AdminRemindersRoute: AdminRemindersRoute,
   AdminStudentsRoute: AdminStudentsRoute,
+  AdminSubmissionRoute: AdminSubmissionRoute,
   AdminSubscriptionsRoute: AdminSubscriptionsRoute,
   AdminTransactionsRoute: AdminTransactionsRoute,
   AdminVirtualAccountsRoute: AdminVirtualAccountsRoute,
