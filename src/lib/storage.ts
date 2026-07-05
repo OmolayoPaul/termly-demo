@@ -302,6 +302,19 @@ export function demoVirtualAccountFor(student: Student): Student["virtualAccount
   };
 }
 
+/** Returns only the students linked to the currently logged-in parent. */
+export function getMyChildren(): Student[] {
+  if (typeof window === "undefined") return [];
+  const session = read<{ email?: string; id?: string } | null>(KEYS.currentUser, null);
+  if (!session?.email) return [];
+  const students = read<Student[]>(KEYS.students, []);
+  return students.filter(
+    (s) =>
+      (s.parentEmail && s.parentEmail.toLowerCase() === session.email!.toLowerCase()) ||
+      (s.parentId && session.id && s.parentId === session.id),
+  );
+}
+
 export function patchStudentsWithDemoAccounts() {
   if (typeof window === "undefined") return;
   const students = read<Student[]>(KEYS.students, []);
@@ -317,6 +330,35 @@ export function patchStudentsWithDemoAccounts() {
   if (changed) write(KEYS.students, patched);
 }
 
+export function patchDemoParentStudent() {
+  if (typeof window === "undefined") return;
+  if (window.localStorage.getItem("termly_patched_jack_v1")) return;
+  const students = read<Student[]>(KEYS.students, []);
+  if (!students.length) return; // seed hasn't run yet — seed() will include Jack
+  const alreadyExists = students.some((s) => s.id === "TML/2024/006");
+  if (!alreadyExists) {
+    const jack: Student = {
+      id: "TML/2024/006",
+      name: "Jack Omolayo",
+      class: "SS 1A",
+      parentName: "Demo Parent",
+      parentEmail: "parent@termly.com",
+      virtualAccount: { accountNumber: "9906677889", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/006" },
+    };
+    write(KEYS.students, [...students, jack]);
+    const existingFees = read<FeeRow[]>(KEYS.fees, []);
+    const jackFees: FeeRow[] = [
+      { id: "F26", studentId: "TML/2024/006", studentName: "Jack Omolayo", term: "School Fees",      amount: 190000, paid: 0, dueDate: "31 Jan 2027", status: "Unpaid" },
+      { id: "F27", studentId: "TML/2024/006", studentName: "Jack Omolayo", term: "Development Levy", amount:  25000, paid: 0, dueDate: "28 Feb 2027", status: "Unpaid" },
+      { id: "F28", studentId: "TML/2024/006", studentName: "Jack Omolayo", term: "Library Fee",      amount:   7000, paid: 0, dueDate: "28 Feb 2027", status: "Unpaid" },
+      { id: "F29", studentId: "TML/2024/006", studentName: "Jack Omolayo", term: "Exam Fee",         amount:  18000, paid: 0, dueDate: "15 Mar 2027", status: "Unpaid" },
+      { id: "F30", studentId: "TML/2024/006", studentName: "Jack Omolayo", term: "PTA Levy",         amount:  10000, paid: 0, dueDate: "15 Mar 2027", status: "Unpaid" },
+    ];
+    write(KEYS.fees, [...existingFees, ...jackFees]);
+  }
+  window.localStorage.setItem("termly_patched_jack_v1", "1");
+}
+
 export function seedFeeTemplatesIfNeeded() {
   if (isFeeTemplatesSeeded()) return;
   if (typeof window === "undefined") return;
@@ -327,6 +369,7 @@ export function seedFeeTemplatesIfNeeded() {
 export function seedIfNeeded() {
   seedFeeTemplatesIfNeeded();
   patchStudentsWithDemoAccounts();
+  patchDemoParentStudent();
   if (!isFirstRun()) return;
   const students: Student[] = seedStudents.map((s) => ({
     id: s.id,

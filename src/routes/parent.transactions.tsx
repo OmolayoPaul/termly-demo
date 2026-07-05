@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
-import { KEYS, read, type TxRow } from "../lib/storage";
+import { KEYS, read, type TxRow, getMyChildren } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { downloadReceipt } from "../lib/receipt";
 import { getSession } from "../lib/auth";
@@ -68,7 +68,12 @@ function downloadStatement(rows: TxRow[], session: ReturnType<typeof getSession>
 
 function Page() {
   const session = getSession();
-  const rows = read<TxRow[]>(KEYS.transactions, []);
+  const myChildren = getMyChildren();
+  const myChildNameSet = new Set(myChildren.map((s) => s.name));
+  const allTxs = read<TxRow[]>(KEYS.transactions, []);
+  const rows = myChildren.length > 0
+    ? allTxs.filter((t) => myChildNameSet.has(t.studentName))
+    : [];
   const total = rows.reduce((s, r) => s + r.amount, 0);
   return (
     <>

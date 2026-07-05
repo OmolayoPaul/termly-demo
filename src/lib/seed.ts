@@ -1,4 +1,11 @@
+export const DEMO_PARENT_EMAIL = "parent@termly.com";
+
 export const students = [
+  {
+    id: "TML/2024/006", name: "Jack Omolayo", class: "SS 1A",
+    parent: "Demo Parent", parentEmail: "parent@termly.com",
+    virtualAccount: { accountNumber: "9906677889", bankName: "Nomba MFB", accountReference: "STUDENT-TML/2024/006" },
+  },
   {
     id: "TML/2024/001", name: "Emeka Okonkwo", class: "JSS 3A",
     parent: "Mr. Chidi Okonkwo", parentEmail: "chidi@example.com",
@@ -32,6 +39,12 @@ export const fees: {
   id: string; student: string; title: string; amount: number; paid: number;
   dueDate: string; status: FeeStatus;
 }[] = [
+  { id: "F26", student: "Jack Omolayo", title: "School Fees",       amount: 190000, paid: 0, dueDate: "31 Jan 2027", status: "Pending" },
+  { id: "F27", student: "Jack Omolayo", title: "Development Levy",  amount:  25000, paid: 0, dueDate: "28 Feb 2027", status: "Pending" },
+  { id: "F28", student: "Jack Omolayo", title: "Library Fee",       amount:   7000, paid: 0, dueDate: "28 Feb 2027", status: "Pending" },
+  { id: "F29", student: "Jack Omolayo", title: "Exam Fee",          amount:  18000, paid: 0, dueDate: "15 Mar 2027", status: "Pending" },
+  { id: "F30", student: "Jack Omolayo", title: "PTA Levy",          amount:  10000, paid: 0, dueDate: "15 Mar 2027", status: "Pending" },
+
   { id: "F1", student: "Emeka Okonkwo", title: "School Fees", amount: 150000, paid: 150000, dueDate: "31 Jan 2026", status: "Paid" },
   { id: "F2", student: "Emeka Okonkwo", title: "Development Levy", amount: 20000, paid: 10000, dueDate: "28 Feb 2026", status: "Partial" },
   { id: "F3", student: "Emeka Okonkwo", title: "Library Fee", amount: 5000, paid: 0, dueDate: "28 Feb 2026", status: "Pending" },

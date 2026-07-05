@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { getSession } from "../lib/auth";
-import { KEYS, read, write, type FeeRow, type Mandate, type Student, getTemplateForClass } from "../lib/storage";
+import { KEYS, read, write, type FeeRow, type Mandate, type Student, getTemplateForClass, getMyChildren } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { friendlyError } from "../services/nomba";
 import { SecuredByNomba } from "../components/TestModeBanner";
@@ -102,7 +102,13 @@ function Page() {
   }
 
   const students = read<Student[]>(KEYS.students, []);
-  const studentNames = Array.from(new Set(rows.map((r) => r.studentName)));
+  const myChildren = getMyChildren();
+  const myChildIds = new Set(myChildren.map((s) => s.id));
+  const myChildNameSet = new Set(myChildren.map((s) => s.name));
+  const filteredRows = myChildren.length > 0
+    ? rows.filter((r) => myChildIds.has(r.studentId) || myChildNameSet.has(r.studentName))
+    : [];
+  const studentNames = Array.from(new Set(filteredRows.map((r) => r.studentName)));
 
   return (
     <>
@@ -141,14 +147,22 @@ function Page() {
         );
       })}
 
-      {studentNames.length === 0 && (
+      {myChildren.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
+          <div className="text-3xl">👨‍👩‍👧</div>
+          <p className="mt-2 font-medium">No students linked to your account yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Please contact the school admin to link your child to your account.</p>
+        </div>
+      )}
+
+      {myChildren.length > 0 && studentNames.length === 0 && (
         <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-muted-foreground">
           No outstanding fees.
         </div>
       )}
 
       {studentNames.map((studentName) => {
-        const studentFees = rows.filter((f) => f.studentName === studentName);
+        const studentFees = filteredRows.filter((f) => f.studentName === studentName);
         const student = students.find((s) => s.id === studentFees[0]?.studentId || s.name === studentName);
         const template = student ? getTemplateForClass(student.class) : undefined;
         const termTotal = template?.total ?? studentFees.reduce((s, f) => s + f.amount, 0);

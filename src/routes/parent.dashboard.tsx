@@ -4,7 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
 import { Spinner } from "../components/Spinner";
 import { getSession } from "../lib/auth";
-import { KEYS, read, write, type FeeRow, type Student, type TxRow, getTemplateForClass } from "../lib/storage";
+import { KEYS, read, write, type FeeRow, type Student, type TxRow, getTemplateForClass, getMyChildren } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 import { SecuredByNomba } from "../components/TestModeBanner";
 import { useResumePendingPayment } from "../hooks/usePaymentPolling";
@@ -22,13 +22,10 @@ function ParentDash() {
 
   const [fees, setFees] = useState<FeeRow[]>(() => read<FeeRow[]>(KEYS.fees, []));
   const [txs, setTxs] = useState<TxRow[]>(() => read<TxRow[]>(KEYS.transactions, []));
-  const students = read<Student[]>(KEYS.students, []);
   const [payAllFor, setPayAllFor] = useState<{ student: Student; amount: number; feeIds: string[] } | null>(null);
 
-  const myKids = session?.email
-    ? students.filter((s) => s.parentEmail?.toLowerCase() === session.email.toLowerCase())
-    : [];
-  const kids = myKids.length > 0 ? myKids : students.slice(0, 1);
+  const kids = getMyChildren();
+  const myChildNames = new Set(kids.map((k) => k.name));
 
   const poll = useResumePendingPayment(() => {
     setFees(read<FeeRow[]>(KEYS.fees, []));
@@ -234,7 +231,7 @@ function ParentDash() {
       <div className="mt-6 rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="text-base font-semibold">Recent Payments</div>
         <ul className="mt-3 divide-y divide-border text-sm">
-          {txs.slice(0, 5).map((t) => (
+          {txs.filter((t) => myChildNames.has(t.studentName)).slice(0, 5).map((t) => (
             <li key={t.id} className="flex items-center justify-between py-2">
               <div>
                 <div className="font-medium">{t.fee}</div>
@@ -243,7 +240,7 @@ function ParentDash() {
               <div className="font-semibold text-success">{fmtNaira(t.amount)}</div>
             </li>
           ))}
-          {txs.length === 0 && <li className="py-4 text-center text-muted-foreground">No payments yet.</li>}
+          {txs.filter((t) => myChildNames.has(t.studentName)).length === 0 && <li className="py-4 text-center text-muted-foreground">No payments yet.</li>}
         </ul>
       </div>
 

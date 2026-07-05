@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "../components/PageHeader";
 import { StatusBadge } from "../components/StatusBadge";
-import { KEYS, read, type Mandate } from "../lib/storage";
+import { KEYS, read, type Mandate, getMyChildren } from "../lib/storage";
 import { fmtNaira, fmtDate } from "../lib/format";
 
 export const Route = createFileRoute("/parent/installments")({ component: Page });
 
 function Page() {
-  const rows = read<Mandate[]>(KEYS.mandates, []);
+  const myChildren = getMyChildren();
+  const myChildNameSet = new Set(myChildren.map((s) => s.name));
+  const allMandates = read<Mandate[]>(KEYS.mandates, []);
+  const rows = myChildren.length > 0
+    ? allMandates.filter((m) => myChildNameSet.has(m.studentName))
+    : [];
   return (
     <>
       <PageHeader title="Installments" subtitle="Your active direct debit plans." />

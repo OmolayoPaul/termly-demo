@@ -1,0 +1,120 @@
+CRITICAL FIX: Parent dashboard is showing ALL students' 
+fees. Each parent must only see their own child's fees.
+
+Fix this immediately across all parent pages.
+
+================================================================
+THE PROBLEM
+================================================================
+Currently /parent/fees shows fees for ALL students:
+- Jack Omolayo (SS1)
+- Emeka Okonkwo (JSS 3A)  
+- Amaka Eze (JSS 2B)
+
+This is wrong. Each parent should only see their 
+own child or children.
+
+================================================================
+THE FIX
+================================================================
+
+STEP 1 — Link parents to their children correctly
+
+When parent logs in, get their user ID from 
+localStorage "termly_current_user".
+
+Then filter localStorage "termly_students" to only 
+show students where:
+student.parent.email === currentUser.email
+OR
+student.parentId === currentUser.id
+
+Only these students belong to this parent.
+
+STEP 2 — Update demo data to link correctly
+
+Update the demo students in localStorage to link 
+each student to the correct parent:
+
+Jack Omolayo → parent email: parent@termly.com
+  (this is the demo parent account)
+
+All other students (Emeka, Amaka, Tunde, Chisom, 
+Ibrahim) → link to their own separate parent emails
+that are NOT parent@termly.com
+
+So when demo parent logs in with parent@termly.com
+they ONLY see Jack Omolayo's fees.
+
+STEP 3 — Update ALL parent pages to filter by parent
+
+/parent/fees → only show fees for parent's children
+/parent/dashboard → only show parent's children
+/parent/savings → only show parent's children savings
+/parent/transactions → only show parent's children transactions
+/parent/installments → only show parent's children mandates
+
+Apply this filter on EVERY parent page:
+
+const currentUser = JSON.parse(
+  localStorage.getItem('termly_current_user')
+);
+
+const myChildren = JSON.parse(
+  localStorage.getItem('termly_students') || '[]'
+).filter(student => 
+  student.parent.email === currentUser.email ||
+  student.parentId === currentUser.id
+);
+
+// Only use myChildren data on all parent pages
+// Never show students that don't belong to this parent
+
+STEP 4 — Admin links student to parent on registration
+
+When admin adds a new student and selects a parent:
+- Store the parent's email AND id on the student record
+- student.parentEmail = selectedParent.email
+- student.parentId = selectedParent.id
+
+This creates the permanent link between 
+student and parent.
+
+STEP 5 — If parent has no children yet
+
+Show a friendly empty state:
+"No students linked to your account yet.
+Please contact the school admin to link 
+your child to your account."
+
+STEP 6 — Handle multiple children per parent
+
+If a parent has more than one child 
+(e.g. two siblings in the same school):
+- Show each child in a separate card
+- Each card shows that child's fees only
+- Parent can pay each child's fees separately
+- Total outstanding shows sum across all their children
+
+STEP 7 — Update demo accounts
+
+Make sure these demo accounts are correctly linked:
+
+Admin: admin@termly.com
+- Can see ALL students
+
+Parent demo account: parent@termly.com  
+- Linked to: Jack Omolayo (SS1) ONLY
+- Sees ONLY Jack's fees: ₦250,000 total
+
+Teacher: teacher@termly.com
+- Sees only their own salary
+
+Student: student@termly.com
+- Linked to: Emeka Okonkwo
+- Sees only Emeka's savings and fees
+
+All other students (Emeka, Amaka, Tunde, Chisom, 
+Ibrahim) have their own parent emails that are 
+different from parent@termly.com so they don't 
+appear on the demo parent dashboard.
